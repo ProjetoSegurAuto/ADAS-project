@@ -4,41 +4,38 @@ import pyzed.sl as sl
 
 ### Transformando imagem da camera em Bird Eye ###
 def warp(img):
-
-    height = img.shape[0]
-    width = img.shape[1]
+    height, width = img.shape[:2]
     img_size = (1280, 720)
 
     src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
-    #src = np.float32([[0, height], [width, height], [200, 630], [(width-200), 630]])
     dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
 
     M = cv2.getPerspectiveTransform(src, dst)
     M_inv = cv2.getPerspectiveTransform(dst, src)
     warp = cv2.warpPerspective(img, M, img_size)
-    # warp_inv = cv2.warpPerspective(img, M_inv, img_size)
 
     return warp, M_inv
 
 ###  Thresholded da imagem ###
 def binary_thresholder(img):
     img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-    img_v = img_yuv[:, :, 2]  # destaca as linhas verdes
-    cv2.imshow("v", img_v)
-    blurred = cv2.GaussianBlur(img_v, (7, 7), 0)
+    img_v = img_yuv[:, :, 2]
+    
+    # Aplicar equalização de histograma para melhorar a iluminação
+    img_v_eq = cv2.equalizeHist(img_v)
 
-    #(T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
-    #(T, thresh) = cv2.threshold(blurred, 115, 255, cv2.THRESH_BINARY_INV) #indoor
-    (T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
+    # Aplicar desfoque adaptativo para reduzir o ruído e preservar as bordas
+    blurred = cv2.bilateralFilter(img_v_eq, 7, 75, 75)
 
-    kernel = np.ones((7, 7), np.uint8)
-    img_dilate = cv2.dilate(thresh, kernel, iterations=1)
-    img_erode = cv2.erode(img_dilate, kernel, iterations=1)
+    # Limiar adaptativo para segmentar as linhas de forma mais adaptável
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 11, 5)
 
-    maskYUV = img_erode
+    # Operações morfológicas para remover pequenos ruídos e preencher lacunas
+    kernel = np.ones((3, 3), np.uint8)
+    img_open = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+    img_close = cv2.morphologyEx(img_open, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-    return maskYUV
-
+    return img_close
 
 def find_lane_pixels_using_histogram(binary_warped):
     # Take a histogram of the bottom half of the image
