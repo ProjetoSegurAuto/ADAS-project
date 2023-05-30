@@ -181,11 +181,8 @@ while True:
                 else:
                     direcao = 1
 
-                angDir, velRodaD, velRodaE = cinematicaVP(veh_pos, rpm_can)
+                angDir, velRodaD, velRodaE = cl.cinematicaVP(veh_pos, rpm_can)
 
-                #bufferA, angDir = getBuffer(bufferA, angDir, 5, 'mean')
-                angDir = cl.smooth_steering(angDir, 5)
-                #print(veh_pos)
                 print("Angulo Direcao: {}; Curvatura: {}; Curvatura Esquerda: {}; Curvatura Direita: {};".format(angDir, R, left_curverad/100, right_curverad/100))
 
             else:
