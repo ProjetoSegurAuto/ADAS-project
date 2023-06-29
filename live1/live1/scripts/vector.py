@@ -1,13 +1,10 @@
 import socket
 import time
 
-HOST = "192.168.1.101"  # Standard loopback interface address (localhost)
-PORT = 2323  # Port to listen on (non-privileged ports are > 1023)
-
-def logCAN(msgECU):
+def logCAN(s):
+    msgECU = s.recv(14)
     log = {}
-
-    print("MSG" + str(msgECU[2]))
+    
     if msgECU[2] == 0x80:
         log['ECU'] = 'Direcao'
         log['Angulo'] = msgECU[9]
@@ -58,11 +55,6 @@ def logCAN(msgECU):
         else:
             log['Sinal'] = 'Sem erro'
         log['Sinal'] = str(sinal)+" - "+log['Sinal']
-        print("RPM "+ str(msgECU[9]))
-        param = [1, 1, 5, 3, 25, msgECU[9], msgECU[11]]
-        msgCanId = 0x91
-        sendMsg(msgCanId, param)
-
 
     elif ((msgECU[3] << 8) + msgECU[2]) == 0x701:
         log['ECU'] = 'Radar'
@@ -82,115 +74,132 @@ def logCAN(msgECU):
     for l in log:
         retorno = retorno + "{}: {} | ".format(l, log[l])
     print (retorno)
-    return retorno
+    #return retorno
     
-def sendMsg(msgCANId, value):
-    #mesg= [1, 8, 0, 14, 5, 0, 0, 7, 8, 9, 10, 11, 12, 13, 14]
+def sendMsg(s, msgCANId, value):
+    try:    
+        #mesg= [1, 8, 0, 14, 5, 0, 0, 7, 8, 9, 10, 11, 12, 13, 14]
 
-    mesg= [0,8,0,msgCANId,0,0,0,0,0,0,0,0,0,0,0]
-    
-    #----------------------ECU DIRECAO-------------------------------------
-    if msgCANId == 0x82:     #Ajustar Angulo Direcao
-        mesg[0] = 1          #CAN1
-        mesg[14] = value[0]  #Set point 
+        mesg= [0, 8, 0, msgCANId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         
-    elif msgCANId == 0x84:   #Calibra a Direcao
-        mesg[0] = 1          #CAN1
-
-    elif msgCANId == 0x86:   #Le Angulo de Giro Atual
-        mesg[0] = 1          #CAN1
-        
-    elif msgCANId == 0x88:   #Set os Ganhos do PID da direcao
-        mesg[0]  = 1          #CAN1
-        mesg[9]  = value[0]       #
-        mesg[10] = value[1]      #Kp
-        mesg[11] = value[2]      #
-        mesg[12] = value[3]      #Ki
-        mesg[13] = value[4]      #
-        mesg[14] = value[5]      #Kd
-        
-    elif msgCANId == 0x90:   #Le os ganhos do PID - Atual
-        mesg[0] = 1          #CAN1
-    
-    elif msgCANId == 0x92:   #Reset ECU Direcao
-        mesg[0] = 1          #CAN1
-        
-    #---------------------ECU POWERTRAIN--------------------------------
-    elif msgCANId == 0x52:       #Ajusta a Velocidade do motor esquerdo
-        mesg[0] = 1              #CAN1
-        mesg[13] = value[0]      #Direcao
-        mesg[14] = value[1]      #RPM
-        
-    elif msgCANId == 0x54:       #Ajusta a Velocidade do motor Direito
-        mesg[0] = 1              #CAN1
-        mesg[13] = value[0]      #Direcao
-        mesg[14] = value[1]      #RPM
-        
-    elif msgCANId == 0x56:       #Ajusta a Velocidade de Ambos os motores
-        mesg[0] = 1              #CAN1
-        mesg[11] = value[0]      #Direcao Esq
-        mesg[12] = value[1]      #RPM Esq
-        mesg[13] = value[2]      #Direcao Dir
-        mesg[14] = value[3]      #RPM Dir
-        
-    elif msgCANId == 0x58:       #Ajusta o PWM do motor esquerdo
-        mesg[0] = 1              #CAN1
-        mesg[13] = value[0]      #Direcao
-        mesg[14] = value[1]      #PWM
-        
-    elif msgCANId == 0x60:       #Ajusta o PWM do motor direito
-        mesg[0] = 1              #CAN1
-        mesg[13] = value[0]      #Direcao
-        mesg[14] = value[1]      #PWM
-        
-    elif msgCANId == 0x5C:       #Ajusta o PWM de Ambos os motores
-        mesg[0] = 1              #CAN1
-        mesg[11] = value[0]      #Direcao Esq
-        mesg[12] = value[1]      #PWM Esq
-        mesg[13] = value[2]      #Direcao Dir
-        mesg[14] = value[3]      #PWM Dir
-    
-    elif msgCANId == 0x64:   #Set os Ganhos do PID do Motor Esquerdo
-        mesg[0] = 1              #CAN1
-        mesg[9] =  value[0]      #
-        mesg[10] = value[1]      #Kp
-        mesg[11] = value[2]      #
-        mesg[12] = value[3]      #Ki
-        mesg[13] = value[4]      #
-        mesg[14] = value[5]      #Kd
-        
-    elif msgCANId == 0x66:   #Set os Ganhos do PID do Motor Direito
-        mesg[0] = 1              #CAN1
-
-        mesg[9] =  value[0]      #
-        mesg[9] =  value[0]      #
-        mesg[10] = value[1]      #Kp
-        mesg[11] = value[2]      #
-        mesg[12] = value[3]      #Ki
-        mesg[13] = value[4]      #
-        mesg[14] = value[5]      #Kd
-
-    #---------------------ECU COMUNICAÇÃO--------------------------------
-    elif msgCANId == 0x91:       #Ajusta a Velocidade do motor esquerdo
-        mesg[0]  = 1             #CAN1
-        print("AGR VAI")
-        mesg[8]  = value[0]      #Direção
-        mesg[9]  = value[1]      #RPM Dir
-        mesg[10] = value[2]      #RPM Esq
-        mesg[11] = value[3]      #
-        mesg[12] = value[4]      #Ki
-        mesg[13] = value[5]      #
-        mesg[14] = value[6]      #Kd
+        #----------------------ECU DIRECAO-------------------------------------
+        if msgCANId == 0x82:     #Ajustar Angulo Direcao
+            mesg[0] = 1          #CAN1
+            mesg[14] = value[0]  #Set point 
             
-    msg = bytearray(mesg)
+        elif msgCANId == 0x84:   #Calibra a Direcao
+            mesg[0] = 1          #CAN1
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
+        elif msgCANId == 0x86:   #Le Angulo de Giro Atual
+            mesg[0] = 1          #CAN1
+            
+        elif msgCANId == 0x88:   #Set os Ganhos do PID da direcao
+            mesg[0]  = 1          #CAN1
+            mesg[9]  = value[0]       #
+            mesg[10] = value[1]      #Kp
+            mesg[11] = value[2]      #
+            mesg[12] = value[3]      #Ki
+            mesg[13] = value[4]      #
+            mesg[14] = value[5]      #Kd
+            
+        elif msgCANId == 0x90:   #Le os ganhos do PID - Atual
+            mesg[0] = 1          #CAN1
+        
+        elif msgCANId == 0x92:   #Reset ECU Direcao
+            mesg[0] = 1          #CAN1
+            
+        #---------------------ECU POWERTRAIN--------------------------------
+        elif msgCANId == 0x52:       #Ajusta a Velocidade do motor esquerdo
+            mesg[0] = 1              #CAN1
+            mesg[13] = value[0]      #Direcao
+            mesg[14] = value[1]      #RPM
+            
+        elif msgCANId == 0x54:       #Ajusta a Velocidade do motor Direito
+            mesg[0] = 1              #CAN1
+            mesg[13] = value[0]      #Direcao
+            mesg[14] = value[1]      #RPM
+            
+        elif msgCANId == 0x56:       #Ajusta a Velocidade de Ambos os motores
+            mesg[0] = 1              #CAN1
+            mesg[11] = value[0]      #Direcao Esq
+            mesg[12] = value[1]      #RPM Esq
+            mesg[13] = value[2]      #Direcao Dir
+            mesg[14] = value[3]      #RPM Dir
+            
+        elif msgCANId == 0x58:       #Ajusta o PWM do motor esquerdo
+            mesg[0] = 1              #CAN1
+            mesg[13] = value[0]      #Direcao
+            mesg[14] = value[1]      #PWM
+            
+        elif msgCANId == 0x60:       #Ajusta o PWM do motor direito
+            mesg[0] = 1              #CAN1
+            mesg[13] = value[0]      #Direcao
+            mesg[14] = value[1]      #PWM
+            
+        elif msgCANId == 0x5C:       #Ajusta o PWM de Ambos os motores
+            mesg[0] = 1              #CAN1
+            mesg[11] = value[0]      #Direcao Esq
+            mesg[12] = value[1]      #PWM Esq
+            mesg[13] = value[2]      #Direcao Dir
+            mesg[14] = value[3]      #PWM Dir
+        
+        elif msgCANId == 0x64:   #Set os Ganhos do PID do Motor Esquerdo
+            mesg[0] = 1              #CAN1
+            mesg[9] =  value[0]      #
+            mesg[10] = value[1]      #Kp
+            mesg[11] = value[2]      #
+            mesg[12] = value[3]      #Ki
+            mesg[13] = value[4]      #
+            mesg[14] = value[5]      #Kd
+            
+        elif msgCANId == 0x66:   #Set os Ganhos do PID do Motor Direito
+            mesg[0] = 1              #CAN1
+
+            mesg[9] =  value[0]      #
+            mesg[9] =  value[0]      #
+            mesg[10] = value[1]      #Kp
+            mesg[11] = value[2]      #
+            mesg[12] = value[3]      #Ki
+            mesg[13] = value[4]      #
+            mesg[14] = value[5]      #Kd
+
+        #---------------------ECU COMUNICAÇÃO--------------------------------
+        elif msgCANId == 0x91:       #Ajusta a Velocidade do motor esquerdo
+            mesg[0]  = 1             #CAN1
+            mesg[8]  = value[0]      #Direção
+            mesg[9]  = value[1]      #RPM Dir
+            mesg[10] = value[2]      #RPM Esq
+            mesg[11] = value[3]      #
+            mesg[12] = value[4]      #Ki
+            mesg[13] = value[5]      #
+            mesg[14] = value[6]      #Kd
+                
+        msg = bytearray(mesg)
+
         s.sendall(msg)
-        data = s.recv(14)
-        #logCAN(data)
-        s.close()
 
+    except Exception as ex:
+        
+        if(ex.errno == 113):
+            erro = "[Errno 113] No route to host"
+        elif(ex.errno == 104):
+            erro = "[Errno 104] Connection reset by peer"
+        elif(ex.errno == 32):
+            erro = "[Errno 32] Broken pipe"
+        else:
+            erro = "{}".format(ex)
+
+        print("Exception: {}".format(erro))
+        s.close()
+        pass
+
+def openSocket():
+    HOST = "192.168.1.101"  # Standard loopback interface address (localhost)
+    PORT = 2323  # Port to listen on (non-privileged ports are > 1023)
+    s =  socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    s.connect((HOST, PORT))
+    return s
+            
 def logCanDir(msgECU):
     retornoDir = ""
 
@@ -198,11 +207,3 @@ def logCanDir(msgECU):
         retornoDir = msgECU[9]
 
     return retornoDir
-
-def callLogCan():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        data = s.recv(14)
-        anguloDir = logCAN(data)
-        s.close()
-        return anguloDir

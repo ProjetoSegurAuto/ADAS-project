@@ -10,10 +10,15 @@ import math
 import time
 import vector as vc                 #biblioteca dda vector que faz a comunicação da orin com a Rede CAN
 import numpy as np
+import socket
+from threading import Thread
 from std_msgs.msg import Float64
 from std_msgs.msg import Float64MultiArray, String
 import ast
 import gc
+
+HOST = "192.168.1.101"  # Standard loopback interface address (localhost)
+PORT = 2323  # Port to listen on (non-privileged ports are > 1023)
 
 flagDistanceReceived = False
 flagVehiclePositionReceived = False
@@ -91,7 +96,7 @@ class DecisionMaker():
 
     def __init__(self):
         """Faz o setup do das veriáveis do carro"""
-        self.rpm_can = 40                  #Define a velociade de inicio do carro
+        self.rpm_can = 0                #Define a velociade de inicio do carro
         self.angle_can = 25                 #Define o angulo de inicio da direção, no ideal começamos com ele ao centro
         self.distanceBreak = 1.2            #Define a distân que o freio de emergência será acionado
         self.distanceStop = 0.5             #Define a distân que o carro vai parar
@@ -99,23 +104,24 @@ class DecisionMaker():
         self.angMin = 1
         self.angMax = 50
         self.timeMin = 0.005
+        self.socket = vc.openSocket()
 
     #inicia o carro
     def initCar(self):
         """Inicia o carro"""
-        print("iniciando carro autorizado!:")
+        print("iniciando carro autorizado!")
         try:
             #enviar mensagens para ECU do powertrain
             msgCanId = 0x56
             #[Direcao Esq, RPM Esq, #Direcao Dir, RPM Dir]
             param = [1, self.rpm_can, 1, self.rpm_can]          #Preenchendo os parametros para o envio da mensagem
-            vc.sendMsg(msgCanId, param)
+            vc.sendMsg(self.socket, msgCanId, param)
             print("mensagem para POWERTRAIN: ",msgCanId,param)
     
             #enviar mensagens para ECU de direção
             msgCanId = 0x82
             param = [self.angle_can]                            #Preenchendo os parametros para o envio da mensagem
-            vc.sendMsg(msgCanId, param)
+            vc.sendMsg(self.socket, msgCanId, param)
             print("mensagem parar Direção: ",msgCanId,param)
 
         except Exception as ex:
@@ -148,8 +154,7 @@ class DecisionMaker():
                 #[Direcao Esq, PWM Esq, #Direcao Dir, PWM Dir]
                 param = [1, 0, 1, 0]
                 #comentar essa linha para testar sem a vector
-                vc.sendMsg(msgCanId, param)
-                print(msgCanId, param)
+                vc.sendMsg(self.socket, msgCanId, param)
 
                 return retorno
 
@@ -181,10 +186,13 @@ def main():
             flagQRCode=True
 
     #Loop de trabalho, tendo passado pelo loop de inicio podemos começar a tratar os dados:
+    s = dm.socket
+    print(s)
+    #logThread.start()
     while(not rospy.is_shutdown()):
         try:
             if (dm.timeMin < time.time() - dm.tSendMsgCAN):      #intervalo de tempo para realizar o processamento
-                print('inicio de do loop')
+                #print('inicio de do loop')
                 dm.tSendMsgCAN = time.time()               #atualiza o tempo para o proximo intervalo
                 angDir = nodeDecisionMaker.msgSteering
                 
@@ -197,10 +205,10 @@ def main():
                 #Ajustar Angulo Direcao
                 msgCanId = 0x82
                 param = [angDir]
-                vc.sendMsg(msgCanId, param)
-                print("Ajustar angulo da direção: {}".format(angDir))
-                #vc.callLogCan()
-
+                vc.sendMsg(s, msgCanId, param)
+                #print("Ajustar angulo da direção: {}".format(angDir))
+                #print('Angulo atual: {}'.format(vc.callLogCan()))
+                    
                 breaking = dm.AEB(nodeDecisionMaker.msg_depth)
 
                 if(not breaking):        
@@ -208,17 +216,19 @@ def main():
                     msgCanId = 0x56
                     #[Direcao Esq, RPM Esq, #Direcao Dir, RPM Dir]
                     param = [1, dm.rpm_can, 1, dm.rpm_can]
-                    vc.sendMsg(msgCanId, param)
-                    #print("Ajustar velocidade")
-                    #print(msgCanId, param)
+                    #print("-----Enviando-----")
+                    vc.sendMsg(s, msgCanId, param)
+                    #print("-----Recebendo-----")
+                    vc.logCAN(s)
+           
                 else:
                     pass
                     # cv2.imshow("Depth", depth.get_data())
                     # cv2.imshow('Resultado', img) 
 
-                param = [1, 1, 5, 3, angDir, dm.rpm_can, dm.rpm_can]
-                msgCanId = 0x91
-                vc.sendMsg(msgCanId, param)
+                #param = [1, 1, 5, 3, angDir, dm.rpm_can, dm.rpm_can]
+                #msgCanId = 0x91
+                #vc.sendMsg(msgCanId, param)
             # cv2.waitKey(1)
             gc.collect()
 
@@ -233,15 +243,19 @@ def main():
             msgCanId = 0x56
             #[Direcao Esq, RPM Esq, #Direcao Dir, RPM Dir]
             param = [1, 0, 1, 0]
-            vc.sendMsg(msgCanId, param)
-    
+            vc.sendMsg(s, msgCanId, param)
 
             #Ajustar Angulo Direcao
             msgCanId = 0x82
             param = [0x19]
-            vc.sendMsg(msgCanId, param)
+            vc.sendMsg(s, msgCanId, param)
+
+            s.close()
+
             break
 
+        except:
+            print("F")
 '''
 def main2():
     global flagObjectYOLOReceived 
