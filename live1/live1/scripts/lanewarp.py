@@ -5,6 +5,7 @@
 #Nome: Lanewarp
 #Descrição: Pegar a imagem da camera zed e aplicar o lanewarp
 
+import logging
 import rospy
 import cv2
 import numpy as np
@@ -13,6 +14,7 @@ from std_msgs.msg import Float64        #tipo de mensagem que sera enviado
 from std_msgs.msg import Float64MultiArray        #tipo de mensagem que sera enviado
 from cv_bridge import CvBridge, CvBridgeError #converter open cv para imagem ros
 import math
+import vector as vc
 
 flagImageReceived = False       #variável global para garantir que o tratamento da imagem so ira começar se tiver recebido imagem
 
@@ -51,6 +53,8 @@ class LaneWarp():
         self.bufferRY = []  
         self.bufferVP = []
         self.bufferA  = []
+        self.logVP = []
+        self.logA = []
 
     #Transformando imagem da camera em Bird Eye
     def warp(self, imagem):
@@ -79,8 +83,8 @@ class LaneWarp():
 
         #(T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         #(T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
-        (T, thresh) = cv2.threshold(blurred, 117, 255, cv2.THRESH_BINARY_INV) #indoor
-        #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #indoor
+        #(T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
 
         kernel = np.ones((7, 7), np.uint8)
         img_dilate = cv2.dilate(thresh, kernel, iterations=1)
@@ -204,7 +208,12 @@ class LaneWarp():
         # Define conversion in x from pixels space to meters
         xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
         # Choose the y value corresponding to the bottom of the image
-        y_max = binary_warped.shape[0]
+        #y_max = binary_warped.shape[0]
+        y_max = binary_warped.shape[0] // 2
+        #y_max = binary_warped.shape[0] // 4
+        #y_max = binary_warped.shape[0] // 3
+        #y_max = 0
+       
         # Calculate left and right line positions at the bottom of the image
         left_x_pos = left_fit[0] * y_max ** 2 + left_fit[1] * y_max + left_fit[2]
         right_x_pos = right_fit[0] * y_max ** 2 + right_fit[1] * y_max + right_fit[2]
@@ -215,7 +224,7 @@ class LaneWarp():
         # If the deviation is negative, the car is on the felt hand side of the center of the lane
         veh_pos = ((binary_warped.shape[1] // 2) - center_lanes_x_pos) * xm_per_pix
         
-        return veh_pos
+        return veh_pos, center_lanes_x_pos
 
     def getBuffer(self, buffer, newValue, tolerance, method):
         retorno = False
@@ -259,6 +268,14 @@ class LaneWarp():
                     cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (255, 0, 0), 2, cv2.LINE_AA)
         cv2.putText(out_img, 'Center Offset [m]: ' + str(veh_pos)[:7], (40, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6,
                     (255, 0, 0), 2, cv2.LINE_AA)
+
+        angMin = 1
+        angMax = 50
+        if(angDir < angMin):
+            angDir = angMin
+        elif(angDir > angMax):
+            angDir = angMax
+
         cv2.putText(out_img, 'Steering: ' + str(angDir)[:7], (40, 150), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6,
                     (255, 0, 0), 2, cv2.LINE_AA)
 
@@ -274,35 +291,34 @@ class LaneWarp():
             linebuffery = liney
 
         return linex, liney, linebufferx, linebuffery
+
+    def cinematicaVP(self, distance_to_center):
+
+        offSet = 1.05  
+
+        wheelbase = 0.75  
+
+        target_point = [offSet, distance_to_center]
+
+        alpha = math.atan2(target_point[1], target_point[0])
+
+        wheel_angle = math.atan(2 * wheelbase * math.sin(alpha) / offSet)
+
+        #convertendo angulo da roda de [-pi/2, pi/2] para o intervalo [1, 50]
+        wheel_angle_mapped = (math.degrees(wheel_angle) + 90) / 180 * 49 + 1
+
+        #Converte distance_to_center para o intervalo [-1, 1]
+        normalized_distance = distance_to_center / 0.8
+
+        #Mapeia normalized_distance para o intervalo [0, 1]
+        normalized_distance = (normalized_distance + 1) / 2
+
+        #Mapeia normalized_distance para o intervalo [1, 50]
+        wheel_angle_mapped = (1 - normalized_distance) * 49 + 1
+        
+        return int(wheel_angle_mapped)
     
-    def cinematicaVP(self, distanciaLat):
-        """
-        Cinemática do carrinho
-            -distanciaLat = posição do veículo
-            -rpm = velocidade do rpm
-            -buffer = 
-        """
-        #Largura do veículo
-        L = 0.75
-        #Atraso na curva
-        offsetY = 0.4
-        #Distância até o centro da curva
-        dist = abs(0.41*distanciaLat)
-
-        ld = math.sqrt(pow(dist, 2) + pow(L+offsetY, 2))
-
-        if(distanciaLat > 0):
-            ang =  math.atan(2*L*dist/(ld*ld)) 
-
-        else:
-            ang = -math.atan(2*L*dist/(ld*ld)) 
-
-        angDir = int((-ang*68.21) + 25)
-            
-        #angDir = int(0.0104*angDir**2 + 1.1372*angDir - 0.73)
-        return angDir
-       
-    def showLog(self, angDir, distanciaLat, left_curverad, right_curverad): 
+    def showLog(self, angDir, distanciaLat, left_curverad, right_curverad, center): 
         angMin = 1
         angMax = 50
         R = ((left_curverad + right_curverad) / 2)/100          #Calcula o raio médio da curva
@@ -320,10 +336,12 @@ class LaneWarp():
         elif(angDir > angMax):
             angDir = angMax
 
-        print("Angulo Direcao: {}; Distância lateral: {}; Curvatura: {};'Direção: {}; Curvatura Esquerda: {}; Curvatura Direita: {};".format(angDir, distanciaLat, R, direcao, left_curverad/100, right_curverad/100))
+        print("Angulo Direcao: {}; Distância lateral: {}; Curvatura: {};'Direção: {}; Curvatura Esquerda: {}; Curvatura Direita: {}; Centro das linhas: {}".format(angDir, distanciaLat, R, direcao, left_curverad/100, right_curverad/100, center))
 
     def working(self, imagem, NodeRos): 
 
+        logging.basicConfig(level=logging.INFO, filename="programa.log", format="%(asctime)s - %(levelname)s - %(message)s")
+        
         #BE
         img_be, M = self.warp(imagem)
         #cv2.imshow('be', img_be)
@@ -340,16 +358,56 @@ class LaneWarp():
         left_fit, right_fit, left_fitx, right_fitx, ploty = self.fit_poly(img_bin, leftx, lefty, rightx, righty)
         left_curverad, right_curverad = self.measure_curvature_meters(img_bin, left_fitx, right_fitx, ploty)
 
-        veh_pos = self.measure_position_meters(img_bin, left_fit, right_fit)
+        veh_pos, center = self.measure_position_meters(img_bin, left_fit, right_fit)
         self.bufferVP, veh_pos = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'last')
-    
+        '''
+        _, veh_pos1 = self.getBuffer(self.bufferVP, veh_pos, 0.05, 'last')
+        _, veh_pos2 = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'last')
+        _, veh_pos3 = self.getBuffer(self.bufferVP, veh_pos, 0.15, 'last')
+        _, veh_pos4 = self.getBuffer(self.bufferVP, veh_pos, 0.2, 'last')
+        _, veh_pos5 = self.getBuffer(self.bufferVP, veh_pos, 0.25, 'last')
+        _, veh_pos6 = self.getBuffer(self.bufferVP, veh_pos, 0.05, 'mean')
+        _, veh_pos7 = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'mean')
+        _, veh_pos8 = self.getBuffer(self.bufferVP, veh_pos, 0.15, 'mean')
+        _, veh_pos9 = self.getBuffer(self.bufferVP, veh_pos, 0.2, 'mean')
+        _, veh_pos10 = self.getBuffer(self.bufferVP, veh_pos, 0.25, 'mean')
+        
+        logVPline = "VPosLine:{};{};{};{};{};{};{};{};{};{};{}".format(veh_pos, veh_pos1, veh_pos2, veh_pos3, veh_pos4, veh_pos5, veh_pos6, veh_pos7, veh_pos8, veh_pos9, veh_pos10)
+        self.logVP.append(logVPline)
+        print(logVPline)
+        with open('/home/orin4/catkin_ws/src/live1/live1/scripts/vpos.txt', 'a') as f:
+            f.write('\n'.join(logVPline))
+
+        '''
+        
+        #angDir0 = vc.callLogCan()
         angDir = self.cinematicaVP(veh_pos)
         self.bufferA, angDir = self.getBuffer(self.bufferA, angDir, 5, 'mean')
+        '''
+        _, angDir1 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos1), 5, 'mean')
+        _, angDir2 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos2), 5, 'mean')
+        _, angDir3 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos3), 5, 'mean')
+        _, angDir4 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos4), 5, 'mean')
+        _, angDir5 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos5), 5, 'mean')
+        _, angDir6 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos6), 5, 'mean')
+        _, angDir7 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos7), 5, 'mean')
+        _, angDir8 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos8), 5, 'mean')
+        _, angDir9 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos9), 5, 'mean')
+        _, angDir10 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos10), 5, 'mean')
+        
+        logAline = "AngLine:{};{};{};{};{};{};{};{};{};{};{}".format( angDir, angDir1, angDir2, angDir3, angDir4, angDir5, angDir6, angDir7, angDir8, angDir9, angDir10)
+        self.logA.append(logAline)
+        print(logAline)
+        with open('/home/orin4/catkin_ws/src/live1/live1/scripts/ang.txt', 'a') as f:
+            f.write('\n'.join(logAline))
+        '''
 
-        self.showLog(angDir, veh_pos, left_curverad, right_curverad)
+        self.showLog(angDir, veh_pos, left_curverad, right_curverad, center)
 
         out_img = self.project_lane_info(imagem[:, :, 0:3], img_bin, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir)
-
+        cv2.circle(out_img, (int(center), 530), 10, (0, 0, 255), 5)
+        cv2.circle(out_img, (int(center), 625), 10, (0, 255, 0), 5)
+        cv2.circle(out_img, (int(center), 720), 10, (255, 0, 0), 5)
         #publicar a mensagens:
         NodeRos.pubVehiclePosition.publish(veh_pos)
         NodeRos.pubSteering.publish(angDir)
@@ -378,6 +436,8 @@ def main():
             except Exception as ex:
                 print("Exception: {}".format(ex))
                 pass
+            except KeyboardInterrupt:
+                print("Exception: KeyboardInterrupt Lane") 
 
 if(__name__=="__main__"):
     main()

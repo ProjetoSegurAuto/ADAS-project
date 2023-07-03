@@ -206,6 +206,7 @@ def main():
                 msgCanId = 0x82
                 param = [angDir]
                 vc.sendMsg(s, msgCanId, param)
+            
                 #print("Ajustar angulo da direção: {}".format(angDir))
                 #print('Angulo atual: {}'.format(vc.callLogCan()))
                     
