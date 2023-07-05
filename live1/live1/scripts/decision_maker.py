@@ -66,7 +66,7 @@ class NodeDecisionMaker():
     def callbackSteering(self, msg_steering):
         global flagSteeringReceived
         flagSteeringReceived = True
-        self.msgSteering = int(msg_steering.data)
+        self.msgSteering = msg_steering.data
 
     #callback para receber o raio de curvatura
     def callbackCurveRadius(self,msg_radiusCurve):
@@ -95,65 +95,61 @@ class NodeDecisionMaker():
 class DecisionMaker():
 
     def __init__(self):
-        """Faz o setup do das veriáveis do carro"""
-        self.rpm_can = 0                #Define a velociade de inicio do carro
-        self.angle_can = 25                 #Define o angulo de inicio da direção, no ideal começamos com ele ao centro
-        self.distanceBreak = 1.2            #Define a distân que o freio de emergência será acionado
-        self.distanceStop = 0.5             #Define a distân que o carro vai parar
-        self.tSendMsgCAN = time.time()      #não sei...
-        self.angMin = 1
-        self.angMax = 50
-        self.timeMin = 0.005
-        self.socket = vc.openSocket()
+        # Faz o setup do das veriáveis do carro
+        self.rpm_can = 0               #Define a velociade de inicio do carro
+        self.angle_can = 25            #Define o angulo de inicio da direção, no ideal começamos com ele ao centro
+        self.distanceBreak = 1.2       #Define a distân que o freio de emergência será acionado
+        self.distanceStop = 0.5        #Define a distân que o carro vai parar
+        self.tSendMsgCAN = time.time() #Inicializa o temporizador de envio de msg na CAN
+        self.timeMin = 0.005           #Intervalo de tempo para envio de msg na CAN
+        self.socket = vc.openSocket()  #Inicializa o socket de comunicação com a CAN
 
-    #inicia o carro
+    #Inicia o carro
     def initCar(self):
-        """Inicia o carro"""
-        print("iniciando carro autorizado!")
+        print("Inicialização do carro autorizada!")
         try:
             #enviar mensagens para ECU do powertrain
             msgCanId = 0x56
             #[Direcao Esq, RPM Esq, #Direcao Dir, RPM Dir]
-            param = [1, self.rpm_can, 1, self.rpm_can]          #Preenchendo os parametros para o envio da mensagem
+            param = [1, self.rpm_can, 1, self.rpm_can] #Preenchendo os parametros para o envio da mensagem
             vc.sendMsg(self.socket, msgCanId, param)
-            print("mensagem para POWERTRAIN: ",msgCanId,param)
+            print("Mensagem para POWERTRAIN: ", msgCanId, param)
     
             #enviar mensagens para ECU de direção
             msgCanId = 0x82
-            param = [self.angle_can]                            #Preenchendo os parametros para o envio da mensagem
+            param = [self.angle_can] #Preenchendo os parametros para o envio da mensagem
             vc.sendMsg(self.socket, msgCanId, param)
-            print("mensagem parar Direção: ",msgCanId,param)
+            print("Mensagem para DIREÇÃO: ", msgCanId, param)
 
         except Exception as ex:
             print("Exception initCar: {}".format(ex))
     
     #Automatic emergency braking (AEB)
-    def AEB(self,distance): 
+    def AEB(self, distance): 
         retorno = False
         msgCanId = 0x00
         try:
             if not np.isnan(distance):
                 if np.isfinite(distance):
                     if distance < self.distanceStop:
-                        print("STOP!!! - distance: {}".format(distance))               
+                        print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))               
                         #TRAVA RODA - FREIA PWM
                         msgCanId = 0x5C
                         retorno = True
 
                     elif distance < self.distanceBreak:
-                        print("Break!!! - distance: {}".format(distance))                    
+                        print("FREIA PID - Distância: {}".format(distance))                    
                         #FREIA PID
                         msgCanId = 0x56
                         retorno = True
                 else:
-                    print("STOP!!! infinite - distance: {}".format(distance))                   
+                    print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))                   
                     #TRAVA RODA - FREIA PWM
                     msgCanId = 0x5C
                     retorno = True
                     
                 #[Direcao Esq, PWM Esq, #Direcao Dir, PWM Dir]
                 param = [1, 0, 1, 0]
-                #comentar essa linha para testar sem a vector
                 vc.sendMsg(self.socket, msgCanId, param)
 
                 return retorno
@@ -195,17 +191,12 @@ def main():
                 #print('inicio de do loop')
                 dm.tSendMsgCAN = time.time()               #atualiza o tempo para o proximo intervalo
                 angDir = nodeDecisionMaker.msgSteering
-                
-                if(angDir < dm.angMin):
-                    angDir = dm.angMin
-                    
-                elif(angDir > dm.angMax):
-                    angDir = dm.angMax
 
                 #Ajustar Angulo Direcao
                 msgCanId = 0x82
                 param = [angDir]
                 vc.sendMsg(s, msgCanId, param)
+            
                 #print("Ajustar angulo da direção: {}".format(angDir))
                 #print('Angulo atual: {}'.format(vc.callLogCan()))
                     

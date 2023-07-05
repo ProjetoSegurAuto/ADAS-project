@@ -13,6 +13,7 @@ from std_msgs.msg import Float64        #tipo de mensagem que sera enviado
 from std_msgs.msg import Float64MultiArray        #tipo de mensagem que sera enviado
 from cv_bridge import CvBridge, CvBridgeError #converter open cv para imagem ros
 import math
+import vector as vc
 
 flagImageReceived = False       #variável global para garantir que o tratamento da imagem so ira começar se tiver recebido imagem
 
@@ -45,12 +46,16 @@ class NodeLanewarp():
 class LaneWarp():
 
     def __init__(self):
+        self.angMin = 1
+        self.angMax = 50
         self.bufferLX = []
         self.bufferLY = []
         self.bufferRX = []
         self.bufferRY = []  
         self.bufferVP = []
         self.bufferA  = []
+        self.logVP = []
+        self.logA = []
 
     #Transformando imagem da camera em Bird Eye
     def warp(self, imagem):
@@ -79,8 +84,8 @@ class LaneWarp():
 
         #(T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         #(T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
-        (T, thresh) = cv2.threshold(blurred, 117, 255, cv2.THRESH_BINARY_INV) #indoor
-        #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #indoor
+        #(T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
 
         kernel = np.ones((7, 7), np.uint8)
         img_dilate = cv2.dilate(thresh, kernel, iterations=1)
@@ -204,7 +209,12 @@ class LaneWarp():
         # Define conversion in x from pixels space to meters
         xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
         # Choose the y value corresponding to the bottom of the image
-        y_max = binary_warped.shape[0]
+        #y_max = binary_warped.shape[0]
+        y_max = binary_warped.shape[0] // 2
+        #y_max = binary_warped.shape[0] // 4
+        #y_max = binary_warped.shape[0] // 3
+        #y_max = 0
+       
         # Calculate left and right line positions at the bottom of the image
         left_x_pos = left_fit[0] * y_max ** 2 + left_fit[1] * y_max + left_fit[2]
         right_x_pos = right_fit[0] * y_max ** 2 + right_fit[1] * y_max + right_fit[2]
@@ -215,7 +225,7 @@ class LaneWarp():
         # If the deviation is negative, the car is on the felt hand side of the center of the lane
         veh_pos = ((binary_warped.shape[1] // 2) - center_lanes_x_pos) * xm_per_pix
         
-        return veh_pos
+        return veh_pos, center_lanes_x_pos
 
     def getBuffer(self, buffer, newValue, tolerance, method):
         retorno = False
@@ -263,7 +273,16 @@ class LaneWarp():
                     (255, 0, 0), 2, cv2.LINE_AA)
 
         return out_img
+    
+    def angValidate(self, angDir):
+        angDir = int(angDir)
+        if(angDir < self.angMin):
+            angDir = self.angMin 
+        elif(angDir > self.angMax):
+            angDir = self.angMax
 
+        return angDir
+    
     def lineValidate(self, linex, liney, linebufferx, linebuffery):
         if(len(linex)==0 or len(liney)==0):
             print('No line')
@@ -274,65 +293,53 @@ class LaneWarp():
             linebuffery = liney
 
         return linex, liney, linebufferx, linebuffery
+
+    def cinematicaPurePursuit(self, distance_to_center):
+        offSet = 1.05  
+        wheelbase = 0.75  
+        target_point = [offSet, distance_to_center]
+
+        alpha = math.atan2(target_point[1], target_point[0])
+        wheel_angle = math.atan(2 * wheelbase * math.sin(alpha) / offSet)
+
+        #convertendo angulo da roda de [-pi/2, pi/2] para o intervalo [1, 50]
+        wheel_angle_mapped = (math.degrees(wheel_angle) + 90) / 180 * 49 + 1
+
+        #Converte distance_to_center para o intervalo [-1, 1]
+        normalized_distance = distance_to_center / 0.8
+
+        #Mapeia normalized_distance para o intervalo [0, 1]
+        normalized_distance = (normalized_distance + 1) / 2
+
+        #Mapeia normalized_distance para o intervalo [1, 50]
+        wheel_angle_mapped = (1 - normalized_distance) * 49 + 1
+        
+        wheel_angle_mapped = self.angValidate(wheel_angle_mapped)
+
+        return wheel_angle_mapped
     
-    def cinematicaVP(self, distanciaLat):
-        """
-        Cinemática do carrinho
-            -distanciaLat = posição do veículo
-            -rpm = velocidade do rpm
-            -buffer = 
-        """
-        #Largura do veículo
-        L = 0.75
-        #Atraso na curva
-        offsetY = 0.4
-        #Distância até o centro da curva
-        dist = abs(0.41*distanciaLat)
-
-        ld = math.sqrt(pow(dist, 2) + pow(L+offsetY, 2))
-
-        if(distanciaLat > 0):
-            ang =  math.atan(2*L*dist/(ld*ld)) 
-
-        else:
-            ang = -math.atan(2*L*dist/(ld*ld)) 
-
-        angDir = int((-ang*68.21) + 25)
-            
-        #angDir = int(0.0104*angDir**2 + 1.1372*angDir - 0.73)
-        return angDir
-       
-    def showLog(self, angDir, distanciaLat, left_curverad, right_curverad): 
-        angMin = 1
-        angMax = 50
-        R = ((left_curverad + right_curverad) / 2)/100          #Calcula o raio médio da curva
+    def showLog(self, angDir, distanciaLat, left_curverad, right_curverad, center): 
+        #Calcula o raio médio da curva
+        R = ((left_curverad + right_curverad) / 2)/100
 
         #Direção que o carro vai virar
         if(left_curverad < right_curverad):
             direcao = 'Left'
-
         else:
             direcao = 'Right'
 
-        if(angDir < angMin):
-            angDir = angMin
-            
-        elif(angDir > angMax):
-            angDir = angMax
-
-        print("Angulo Direcao: {}; Distância lateral: {}; Curvatura: {};'Direção: {}; Curvatura Esquerda: {}; Curvatura Direita: {};".format(angDir, distanciaLat, R, direcao, left_curverad/100, right_curverad/100))
+        print("Angulo Direcao: {}; Distância lateral: {}; Curvatura: {};'Direção: {}; Curvatura Esquerda: {}; Curvatura Direita: {}; Centro das linhas: {}".format(angDir, distanciaLat, R, direcao, left_curverad/100, right_curverad/100, center))
 
     def working(self, imagem, NodeRos): 
-
-        #BE
+        #Imagem Bird Eye View
         img_be, M = self.warp(imagem)
         #cv2.imshow('be', img_be)
 
-        # imagem binarizadda
+        #Imagem Binarizada
         img_bin = self.binary_thresholder(img_be)
-        cv2.imshow('bin', img_bin)
+        cv2.imshow('Bird Eye View Binarizada', img_bin)
 
-        # exibindo pontos da linha esquerda e direita
+        # Resgatando e validando pontos da linha esquerda e direita
         leftx, lefty, rightx, righty = self.find_lane_pixels_using_histogram(img_bin)
         leftx, lefty, self.bufferLX, self.bufferLY = self.lineValidate(leftx, lefty, self.bufferLX, self.bufferLY)
         rightx, righty, self.bufferRX, self.bufferRY = self.lineValidate(rightx, righty, self.bufferRX, self.bufferRY)
@@ -340,15 +347,18 @@ class LaneWarp():
         left_fit, right_fit, left_fitx, right_fitx, ploty = self.fit_poly(img_bin, leftx, lefty, rightx, righty)
         left_curverad, right_curverad = self.measure_curvature_meters(img_bin, left_fitx, right_fitx, ploty)
 
-        veh_pos = self.measure_position_meters(img_bin, left_fit, right_fit)
+        veh_pos, center = self.measure_position_meters(img_bin, left_fit, right_fit)
         self.bufferVP, veh_pos = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'last')
-    
-        angDir = self.cinematicaVP(veh_pos)
+        
+        angDir = self.cinematicaPurePursuit(veh_pos)
         self.bufferA, angDir = self.getBuffer(self.bufferA, angDir, 5, 'mean')
-
-        self.showLog(angDir, veh_pos, left_curverad, right_curverad)
+         
+        #self.showLog(angDir, veh_pos, left_curverad, right_curverad, center)
 
         out_img = self.project_lane_info(imagem[:, :, 0:3], img_bin, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir)
+        cv2.circle(out_img, (int(center), 530), 10, (0, 0, 255), 5)
+        cv2.circle(out_img, (int(center), 625), 10, (0, 255, 0), 5)
+        cv2.circle(out_img, (int(center), 720), 10, (255, 0, 0), 5)
 
         #publicar a mensagens:
         NodeRos.pubVehiclePosition.publish(veh_pos)
@@ -372,12 +382,14 @@ def main():
     while(not rospy.is_shutdown()):
         if(flagImageReceived):
             try:                
-                #cv2.imshow('ZED', nodeLanewarp.msgTPC1Camera)
-                #cv2.waitKey(1)
                 lanewarp.working(nodeLanewarp.msgTPC1Camera, nodeLanewarp)
+
             except Exception as ex:
                 print("Exception: {}".format(ex))
                 pass
+
+            except KeyboardInterrupt:
+                print("Exception: KeyboardInterrupt Lane") 
 
 if(__name__=="__main__"):
     main()
