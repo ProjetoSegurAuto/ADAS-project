@@ -304,16 +304,9 @@ class LaneWarp():
 
         wheel_angle = math.atan(2 * wheelbase * math.sin(alpha) / offSet)
 
-        #convertendo angulo da roda de [-pi/2, pi/2] para o intervalo [1, 50]
         wheel_angle_mapped = (math.degrees(wheel_angle) + 90) / 180 * 49 + 1
-
-        #Converte distance_to_center para o intervalo [-1, 1]
         normalized_distance = distance_to_center / 0.8
-
-        #Mapeia normalized_distance para o intervalo [0, 1]
         normalized_distance = (normalized_distance + 1) / 2
-
-        #Mapeia normalized_distance para o intervalo [1, 50]
         wheel_angle_mapped = (1 - normalized_distance) * 49 + 1
         
         return int(wheel_angle_mapped)
@@ -360,47 +353,10 @@ class LaneWarp():
 
         veh_pos, center = self.measure_position_meters(img_bin, left_fit, right_fit)
         self.bufferVP, veh_pos = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'last')
-        '''
-        _, veh_pos1 = self.getBuffer(self.bufferVP, veh_pos, 0.05, 'last')
-        _, veh_pos2 = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'last')
-        _, veh_pos3 = self.getBuffer(self.bufferVP, veh_pos, 0.15, 'last')
-        _, veh_pos4 = self.getBuffer(self.bufferVP, veh_pos, 0.2, 'last')
-        _, veh_pos5 = self.getBuffer(self.bufferVP, veh_pos, 0.25, 'last')
-        _, veh_pos6 = self.getBuffer(self.bufferVP, veh_pos, 0.05, 'mean')
-        _, veh_pos7 = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'mean')
-        _, veh_pos8 = self.getBuffer(self.bufferVP, veh_pos, 0.15, 'mean')
-        _, veh_pos9 = self.getBuffer(self.bufferVP, veh_pos, 0.2, 'mean')
-        _, veh_pos10 = self.getBuffer(self.bufferVP, veh_pos, 0.25, 'mean')
-        
-        logVPline = "VPosLine:{};{};{};{};{};{};{};{};{};{};{}".format(veh_pos, veh_pos1, veh_pos2, veh_pos3, veh_pos4, veh_pos5, veh_pos6, veh_pos7, veh_pos8, veh_pos9, veh_pos10)
-        self.logVP.append(logVPline)
-        print(logVPline)
-        with open('/home/orin4/catkin_ws/src/live1/live1/scripts/vpos.txt', 'a') as f:
-            f.write('\n'.join(logVPline))
 
-        '''
-        
         #angDir0 = vc.callLogCan()
         angDir = self.cinematicaVP(veh_pos)
         self.bufferA, angDir = self.getBuffer(self.bufferA, angDir, 5, 'mean')
-        '''
-        _, angDir1 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos1), 5, 'mean')
-        _, angDir2 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos2), 5, 'mean')
-        _, angDir3 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos3), 5, 'mean')
-        _, angDir4 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos4), 5, 'mean')
-        _, angDir5 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos5), 5, 'mean')
-        _, angDir6 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos6), 5, 'mean')
-        _, angDir7 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos7), 5, 'mean')
-        _, angDir8 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos8), 5, 'mean')
-        _, angDir9 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos9), 5, 'mean')
-        _, angDir10 = self.getBuffer(self.bufferA, self.cinematicaVP(veh_pos10), 5, 'mean')
-        
-        logAline = "AngLine:{};{};{};{};{};{};{};{};{};{};{}".format( angDir, angDir1, angDir2, angDir3, angDir4, angDir5, angDir6, angDir7, angDir8, angDir9, angDir10)
-        self.logA.append(logAline)
-        print(logAline)
-        with open('/home/orin4/catkin_ws/src/live1/live1/scripts/ang.txt', 'a') as f:
-            f.write('\n'.join(logAline))
-        '''
 
         self.showLog(angDir, veh_pos, left_curverad, right_curverad, center)
 
