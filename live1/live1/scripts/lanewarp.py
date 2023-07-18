@@ -33,6 +33,8 @@ class NodeLanewarp():
         self.pubVehiclePosition = rospy.Publisher('TPC4VehiclePosition', Float64, queue_size=1)
         self.pubSteering = rospy.Publisher('TPC4Steering', Float64, queue_size=1)
         self.pubCurveRadius = rospy.Publisher('TPC5CurveRadius', Float64MultiArray, queue_size=1)
+        self.pubLKAroi = rospy.Publisher('TPC6LKAroi', Image, queue_size=1)
+        self.pubLKAresult = rospy.Publisher('TPC7LKAresult', Image, queue_size=1)
 
     def callback(self, msg_camera):
 
@@ -365,6 +367,12 @@ class LaneWarp():
         NodeRos.pubSteering.publish(angDir)
         NodeRos.msgCurveRadius.data = [left_curverad,right_curverad]
         NodeRos.pubCurveRadius.publish(NodeRos.msgCurveRadius)
+
+        NodeRos.msgLKAroi = self.bridge.cv2_to_imgmsg(img_bin,"bgra8")
+        NodeRos.pubLKAroi.publish(NodeRos.msgLKAroi)
+
+        NodeRos.msgLKAresult = self.bridge.cv2_to_imgmsg(out_img,"bgra8")
+        NodeRos.pubLKAresult.publish(NodeRos.msgLKAresult)
 
         cv2.imshow('resultado', out_img)
         #cv2.imshow('Poly Lines', self.draw_poly_lines(img_bin, left_fitx, right_fitx, ploty))

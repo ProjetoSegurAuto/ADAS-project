@@ -113,7 +113,10 @@ def main():
                 cv2.imshow('YOLO', imageYOLO)
                 cv2.waitKey(1)
 
-                yolo.pubObjectYOLO.publish(yolo.objectYOLO) 
+                yolo.pubObjectYOLO.publish(yolo.objectYOLO)
+
+                yolo.pubImgYOLO = yolo.bridge.cv2_to_imgmsg(imageYOLO,"bgra8")
+                yolo.pubImgYOLO.publish(imageYOLO) 
 
                 gc.collect()
             except Exception as ex:
