@@ -339,7 +339,7 @@ class LaneWarp():
 
         #Imagem Binarizada
         img_bin = self.binary_thresholder(img_be)
-        cv2.imshow('Bird Eye View Binarizada', img_bin)
+        #cv2.imshow('Bird Eye View Binarizada', img_bin)
 
         # Resgatando e validando pontos da linha esquerda e direita
         leftx, lefty, rightx, righty = self.find_lane_pixels_using_histogram(img_bin)
@@ -368,16 +368,16 @@ class LaneWarp():
         NodeRos.msgCurveRadius.data = [left_curverad,right_curverad]
         NodeRos.pubCurveRadius.publish(NodeRos.msgCurveRadius)
 
-        NodeRos.msgLKAroi = self.bridge.cv2_to_imgmsg(img_bin,"bgra8")
+        NodeRos.msgLKAroi = NodeRos.bridge.cv2_to_imgmsg(img_bin,"8UC1")
         NodeRos.pubLKAroi.publish(NodeRos.msgLKAroi)
 
-        NodeRos.msgLKAresult = self.bridge.cv2_to_imgmsg(out_img,"bgra8")
+        NodeRos.msgLKAresult = NodeRos.bridge.cv2_to_imgmsg(out_img,"8UC3")
         NodeRos.pubLKAresult.publish(NodeRos.msgLKAresult)
 
-        cv2.imshow('resultado', out_img)
+        #cv2.imshow('resultado', out_img)
         #cv2.imshow('Poly Lines', self.draw_poly_lines(img_bin, left_fitx, right_fitx, ploty))
         #cv2.imwrite('resultado_'+str(i)+'.jpg', out_img)
-        cv2.waitKey(1)
+        #cv2.waitKey(1)
  
 def main():
     #Setup ROS

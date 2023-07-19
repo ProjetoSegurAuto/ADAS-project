@@ -40,7 +40,7 @@ class NodeDashboard():
     def callbackROI(self, msg_roi):
 
         # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
-        self.msgTPC6LKAroi = self.bridge.imgmsg_to_cv2(msg_roi, 'bgra8')
+        self.msgTPC6LKAroi = self.bridge.imgmsg_to_cv2(msg_roi, '8UC1')
 
         global flagLKAroi
         flagLKAroi = True  # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
@@ -48,7 +48,7 @@ class NodeDashboard():
     def callbackResult(self, msg_result):
 
         # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
-        self.msgTPC7LKAresult = self.bridge.imgmsg_to_cv2(msg_result, 'bgra8')
+        self.msgTPC7LKAresult = self.bridge.imgmsg_to_cv2(msg_result, '8UC3')
 
         global flagLKAresult
         # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
@@ -57,7 +57,7 @@ class NodeDashboard():
     def callbackYOLO(self, msg_img_yolo):
 
         # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
-        self.msgTPC3ImgYOLO = self.bridge.imgmsg_to_cv2(msg_img_yolo, 'bgra8')
+        self.msgTPC3ImgYOLO = self.bridge.imgmsg_to_cv2(msg_img_yolo, '8UC3')
 
         global flagImgYolo
         # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
@@ -71,26 +71,30 @@ class Dashboard():
         # image = image[:, :, :3]
 
         # I just resized the image to a quarter of its original size
-        imageROI = cv2.resize(imageROI, (0, 0), None, .5, .5)
-        imageResult = cv2.resize(imageResult, (0, 0), None, .5, .5)
+        imageROI = cv2.resize(cv2.cvtColor(imageROI, cv2.COLOR_GRAY2BGR), (0, 0), None, .5, .5)#cv2.resize(imageROI, (0, 0), None, .5, .5)
         imageYolo = cv2.resize(imageYolo, (0, 0), None, .5, .5)
+        #imageResult = cv2.resize(imageResult, (0, 0), None, .75, .75)
 
         # grey = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         # Make the grey scale image have three channels
         # grey_3_channel = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
-        numpy_vertical = np.vstack((imageROI, imageResult))
-        numpy_horizontal = np.hstack((imageROI, imageResult))
+        numpy_vertical = np.vstack((imageROI, imageYolo))
+        numpy_horizontal = np.hstack((imageResult, numpy_vertical))
 
-        numpy_vertical_concat = np.concatenate((imageROI, imageResult), axis=0)
-        numpy_horizontal_concat = np.concatenate(
-            (imageROI, imageResult), axis=1)
+        #numpy_vertical_concat = np.concatenate((imageROI, imageResult, imageYolo), axis=0)
+
+        #numpy_horizontal_concat = np.concatenate((imageROI, imageResult, imageYolo), axis=1)
 
         # cv2.imshow('Main', image)
+        '''
         cv2.imshow('Numpy Vertical', numpy_vertical)
         cv2.imshow('Numpy Horizontal', numpy_horizontal)
         cv2.imshow('Numpy Vertical Concat', numpy_vertical_concat)
         cv2.imshow('Numpy Horizontal Concat', numpy_horizontal_concat)
+        '''
+
+        cv2.imshow('LIVE', numpy_horizontal)
 
         cv2.waitKey(1)
 

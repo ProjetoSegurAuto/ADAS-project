@@ -110,13 +110,13 @@ def main():
                 yolo.objectYOLO.data, imageYOLO = yolo.getObjetcs(frame[:, :, :3])
 
                 #comentar caso não queira debugar
-                cv2.imshow('YOLO', imageYOLO)
-                cv2.waitKey(1)
+                #cv2.imshow('YOLO', imageYOLO)
+                #cv2.waitKey(1)
 
                 yolo.pubObjectYOLO.publish(yolo.objectYOLO)
 
-                yolo.pubImgYOLO = yolo.bridge.cv2_to_imgmsg(imageYOLO,"bgra8")
-                yolo.pubImgYOLO.publish(imageYOLO) 
+                yolo.msgImgYOLO = yolo.bridge.cv2_to_imgmsg(imageYOLO,"8UC3")
+                yolo.pubImgYOLO.publish(yolo.msgImgYOLO) 
 
                 gc.collect()
             except Exception as ex:
