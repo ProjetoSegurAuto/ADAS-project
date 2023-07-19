@@ -66,8 +66,8 @@ class NodeDecisionMaker():
         global canParams
 
         flagBreakAEB = False
-        distanceBreak = 1.8 #1.2      #Define a distância que o freio de emergência será acionado
-        distanceStop  = 1.0 #0.5      #Define a distância que o carro vai parar
+        distanceBreak = 1.2 #1.2      #Define a distância que o freio de emergência será acionado
+        distanceStop  = 0.8 #0.5      #Define a distância que o carro vai parar
 
         if not np.isnan(distance):
             if np.isfinite(distance):

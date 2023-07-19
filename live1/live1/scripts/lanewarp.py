@@ -35,6 +35,7 @@ class NodeLanewarp():
         self.pubCurveRadius = rospy.Publisher('TPC5CurveRadius', Float64MultiArray, queue_size=1)
         self.pubLKAroi = rospy.Publisher('TPC6LKAroi', Image, queue_size=1)
         self.pubLKAresult = rospy.Publisher('TPC7LKAresult', Image, queue_size=1)
+        self.pubLKAnave = rospy.Publisher('TPC8LKAnave', Image, queue_size=1)
 
     def callback(self, msg_camera):
 
@@ -263,6 +264,9 @@ class LaneWarp():
 
         # Warp the blank back to original image space using inverse perspective matrix (Minv)
         newwarp = cv2.warpPerspective(color_warp, M_inv, (img.shape[1], img.shape[0]))
+        #warp image binarized
+        newwarpbin = cv2.cvtColor(newwarp, cv2.COLOR_BGR2GRAY)
+        newwarpbin = cv2.threshold(newwarpbin, 1, 255, cv2.THRESH_BINARY)[1]
 
         # Combine the result with the original image
         out_img = cv2.addWeighted(img, 1, newwarp, 0.3, 0)
@@ -274,7 +278,8 @@ class LaneWarp():
         cv2.putText(out_img, 'Steering: ' + str(angDir)[:7], (40, 150), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6,
                     (255, 0, 0), 2, cv2.LINE_AA)
 
-        return out_img
+        return out_img, newwarpbin
+        
     
     def angValidate(self, angDir):
         angDir = int(angDir)
@@ -357,7 +362,7 @@ class LaneWarp():
          
         #self.showLog(angDir, veh_pos, left_curverad, right_curverad, center)
 
-        out_img = self.project_lane_info(imagem[:, :, 0:3], img_bin, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir)
+        out_img, navegation = self.project_lane_info(imagem[:, :, 0:3], img_bin, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir)
         cv2.circle(out_img, (int(center), 530), 10, (0, 0, 255), 5)
         cv2.circle(out_img, (int(center), 625), 10, (0, 255, 0), 5)
         cv2.circle(out_img, (int(center), 720), 10, (255, 0, 0), 5)
@@ -367,6 +372,9 @@ class LaneWarp():
         NodeRos.pubSteering.publish(angDir)
         NodeRos.msgCurveRadius.data = [left_curverad,right_curverad]
         NodeRos.pubCurveRadius.publish(NodeRos.msgCurveRadius)
+
+        NodeRos.msgLKAnave = NodeRos.bridge.cv2_to_imgmsg(navegation,"8UC1")
+        NodeRos.pubLKAnave.publish(NodeRos.msgLKAnave)
 
         NodeRos.msgLKAroi = NodeRos.bridge.cv2_to_imgmsg(img_bin,"8UC1")
         NodeRos.pubLKAroi.publish(NodeRos.msgLKAroi)
