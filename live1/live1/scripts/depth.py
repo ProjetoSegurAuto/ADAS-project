@@ -76,7 +76,7 @@ class Depth():
         self.recorte = np.where(nave[:600, :], depth[:600, :], math.inf)
         #self.recorte = depth[240:480,320:960].copy()         #Faz um recorte da image, analisa apenas uma parte da imagem (retangulo)
         distanciaMin = np.nanmin(self.recorte)               #Pega a menir idstancia sem ser um nan    
-        
+        #print(distanciaMin)
         return distanciaMin
     
     #mostra  na imagem captura pela camera a area qeu vamos pegar a prodfundidade em forma de um retangulo

@@ -3,7 +3,7 @@
 ##########
 # Informações sobre esse Node:
 # Nome: Decision maker
-# Descrição: A partir das infromações toma a decisão
+# Descrição: A partir das informações toma a decisão
 
 import rospy
 import time
@@ -62,25 +62,26 @@ class NodeDecisionMaker():
 
     def AEB(self, distance):
         global flagBreakAEB
+        global flagBreakYOLO
         global canID
         global canParams
 
         flagBreakAEB = False
-        distanceBreak = 1.2 #1.2      #Define a distância que o freio de emergência será acionado
-        distanceStop  = 0.8 #0.5      #Define a distância que o carro vai parar
+        distanceBreak = 1.4#1.3 #1.2      #Define a distância que o freio de emergência será acionado
+        distanceStop  = 1.0#0.9 #0.5      #Define a distância que o carro vai parar
 
         if not np.isnan(distance):
             if np.isfinite(distance):
-                if distance < distanceStop:
-                    #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
+                if distance <= distanceStop:
+                    print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
                     canID = 0x5C
                     flagBreakAEB = True
-                elif distance < distanceBreak:
-                    #print("FREIA PID - Distância: {}".format(distance))
+                elif distance <= distanceBreak and not flagBreakYOLO:
+                    print("FREIA PID - Distância: {}".format(distance))
                     canID = 0x56
                     flagBreakAEB = True
             else:
-                #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
+                print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
                 canID = 0x5C
                 flagBreakAEB = True
 
@@ -114,16 +115,18 @@ class NodeDecisionMaker():
 
     def yoloDecision(self, jsonObjectYOLO):
         global flagBreakYOLO
+        global flagBreakAEB
         global canID
         global canParams
 
-        flagBreakYOLO = False
-        for object in jsonObjectYOLO:
-            if (jsonObjectYOLO[object]['classId'] == "stop sign"):
-                print("FREIA PID - Placa PARE")
-                flagBreakYOLO = True
-                canID = 0x56
-                canParams = [1, 0, 1, 0]                
+        #flagBreakYOLO = False
+        if(not flagBreakAEB):
+            for object in jsonObjectYOLO:
+                if (jsonObjectYOLO[object]['classId'] == "stop sign"):
+                    print("FREIA PID - Placa PARE")
+                    flagBreakYOLO = True
+                    canID = 0x56
+                    canParams = [1, 0, 1, 0]                
     
     def callbackQRCode(self, msg_QRCode):
         global flagQRCode
@@ -134,40 +137,12 @@ class NodeDecisionMaker():
 class DecisionMaker():
     def __init__(self):
         # Faz o setup do das veriáveis do carro
-        self.rpm_can = 50               #Define a velociade de inicio do carro
+        self.rpm_can = 60              #Define a velociade de inicio do carro
         self.angle_can = 25            #Define o angulo de inicio da direção, no ideal começamos com ele ao centro
         self.tSendMsgCAN = time.time() #Inicializa o temporizador de envio de msg na CAN
         self.timeMin = 0.001           #Intervalo de tempo para envio de msg na CAN
         self.socket = vc.openSocket()  #Inicializa o socket de comunicação com a CAN
-    '''
-    def AEB(self, distance):
-        aeb = False
-        msgCanId = 0x00
-        param = []
-        distanceBreak = 1.8#1.2       #Define a distância que o freio de emergência será acionado
-        distanceStop = 1.0 #0.5       #Define a distância que o carro vai parar
-
-        if not np.isnan(distance):
-            if np.isfinite(distance):
-                if distance < distanceStop:
-                    print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
-                    msgCanId = 0x5C
-                    aeb = True
-                elif distance < distanceBreak:
-                    print("FREIA PID - Distância: {}".format(distance))
-                    msgCanId = 0x56
-                    aeb = True
-            else:
-                print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
-                msgCanId = 0x5C
-                aeb = True
-
-        if aeb:     
-            param = [1, 0, 1, 0]
-            vc.sendMsg(self.socket, msgCanId, param)
-
-        return aeb
-    '''
+    
     def initCar(self):
         print("Inicialização do carro autorizada!")
         try:

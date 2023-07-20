@@ -49,16 +49,16 @@ class NodeLanewarp():
 class LaneWarp():
 
     def __init__(self):
-        self.angMin = 1
-        self.angMax = 50
+        self.angMin   = 1
+        self.angMax   = 50
         self.bufferLX = []
         self.bufferLY = []
         self.bufferRX = []
         self.bufferRY = []  
         self.bufferVP = []
         self.bufferA  = []
-        self.logVP = []
-        self.logA = []
+        self.logVP    = []
+        self.logA     = []
 
     #Transformando imagem da camera em Bird Eye
     def warp(self, imagem):
@@ -213,11 +213,8 @@ class LaneWarp():
         xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
         # Choose the y value corresponding to the bottom of the image
         #y_max = binary_warped.shape[0]
-        y_max = binary_warped.shape[0] // 2
-        #y_max = binary_warped.shape[0] // 4
-        #y_max = binary_warped.shape[0] // 3
-        #y_max = 0
-       
+        y_max = int(binary_warped.shape[0]*0.85)
+
         # Calculate left and right line positions at the bottom of the image
         left_x_pos = left_fit[0] * y_max ** 2 + left_fit[1] * y_max + left_fit[2]
         right_x_pos = right_fit[0] * y_max ** 2 + right_fit[1] * y_max + right_fit[2]
@@ -228,7 +225,7 @@ class LaneWarp():
         # If the deviation is negative, the car is on the felt hand side of the center of the lane
         veh_pos = ((binary_warped.shape[1] // 2) - center_lanes_x_pos) * xm_per_pix
         
-        return veh_pos, center_lanes_x_pos
+        return veh_pos, center_lanes_x_pos, y_max
 
     def getBuffer(self, buffer, newValue, tolerance, method):
         retorno = False
@@ -292,7 +289,7 @@ class LaneWarp():
     
     def lineValidate(self, linex, liney, linebufferx, linebuffery):
         if(len(linex)==0 or len(liney)==0):
-            print('No line')
+            print('No lines')
             linex = linebufferx
             liney = linebuffery 
         else:
@@ -302,7 +299,7 @@ class LaneWarp():
         return linex, liney, linebufferx, linebuffery
 
     def cinematicaPurePursuit(self, distance_to_center):
-        offSet = 1.05  
+        offSet = 1.05#1.2
         wheelbase = 0.75  
         target_point = [offSet, distance_to_center]
 
@@ -313,7 +310,7 @@ class LaneWarp():
         wheel_angle_mapped = (math.degrees(wheel_angle) + 90) / 180 * 49 + 1
 
         #Converte distance_to_center para o intervalo [-1, 1]
-        normalized_distance = distance_to_center / 0.8
+        normalized_distance = distance_to_center / 0.9
 
         #Mapeia normalized_distance para o intervalo [0, 1]
         normalized_distance = (normalized_distance + 1) / 2
@@ -354,7 +351,7 @@ class LaneWarp():
         left_fit, right_fit, left_fitx, right_fitx, ploty = self.fit_poly(img_bin, leftx, lefty, rightx, righty)
         left_curverad, right_curverad = self.measure_curvature_meters(img_bin, left_fitx, right_fitx, ploty)
 
-        veh_pos, center = self.measure_position_meters(img_bin, left_fit, right_fit)
+        veh_pos, center, center_y = self.measure_position_meters(img_bin, left_fit, right_fit)
         self.bufferVP, veh_pos = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'last')
         
         angDir = self.cinematicaPurePursuit(veh_pos)
@@ -363,9 +360,17 @@ class LaneWarp():
         #self.showLog(angDir, veh_pos, left_curverad, right_curverad, center)
 
         out_img, navegation = self.project_lane_info(imagem[:, :, 0:3], img_bin, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir)
-        cv2.circle(out_img, (int(center), 530), 10, (0, 0, 255), 5)
-        cv2.circle(out_img, (int(center), 625), 10, (0, 255, 0), 5)
-        cv2.circle(out_img, (int(center), 720), 10, (255, 0, 0), 5)
+        cv2.circle(out_img, (int(center), int(center_y)), 10, (0, 255, 0), 5)
+        '''
+        cv2.circle(out_img, (int(center), 530), 10, (0, 0, 255), 5)#vermelho
+        cv2.circle(out_img, (int(center), 625), 10, (0, 255, 0), 5)#verde
+        cv2.circle(out_img, (int(center), 720), 10, (255, 0, 0), 5)#azul escuro
+        cv2.circle(out_img, (int(center), int(center_y)), 10, (0, 0, 0), 5)#preto
+        cv2.circle(out_img, (int(center), int(center_y*0.50)), 10, (255, 255, 0), 5)#azul turquesa 
+        cv2.circle(out_img, (int(center), int(center_y*0.75)), 10, (50, 50, 50), 5)#cinza
+        cv2.circle(out_img, (int(center), int(center_y*0.85)), 10, (0, 255, 255), 5)#amarelo
+        cv2.circle(out_img, (int(center), int(center_y*0.95)), 10, (255, 255, 255), 5)#branco
+        '''
 
         #publicar a mensagens:
         NodeRos.pubVehiclePosition.publish(veh_pos)
