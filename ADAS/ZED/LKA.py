@@ -7,7 +7,6 @@ import vector as vc
 import laneWarp as ln
 import depth as dp
 import math
-import controle_lateral as cl
 
 def cinematicaVP(distanciaLat, rpm):
     L = 0.74
@@ -59,7 +58,6 @@ def lineValidate(linex, liney, linebufferx, linebuffery):
 
     return linex, liney, linebufferx, linebuffery
 
-
 def initCar(rpm_can, angle_can):
     try:
         #ACELERA PID
@@ -108,9 +106,11 @@ image = sl.Mat()
 depth = sl.Mat()
 
 # Set runtime parameters
-runtime = sl.RuntimeParameters() 
+runtime = sl.RuntimeParameters()
+# Use STANDARD sensing mode
+runtime.sensing_mode = sl.SENSING_MODE.STANDARD  
 
-rpm_can = 0
+rpm_can = 30
 angle_can = 25
 distanceBreak = 1.2
 distanceStop = 0.5
@@ -162,7 +162,7 @@ while True:
         #bufferLC, left_curverad = getBuffer(bufferLC, left_curverad , 10, 'last')
         #bufferRC, right_curverad = getBuffer(bufferRC, right_curverad , 10, 'last')
 
-        veh_pos, center = ln.measure_position_meters(img_bin, left_fit, right_fit)
+        veh_pos = ln.measure_position_meters(img_bin, left_fit, right_fit)
         #bufferVP, veh_pos = getBuffer(bufferVP, veh_pos , 0.2, 'last')
 
         out_img = ln.project_lane_info(img[:, :, 0:3], img_bin, ploty, left_fitx, right_fitx, M, left_curverad/100, right_curverad/100, veh_pos)
@@ -183,14 +183,12 @@ while True:
 
                 angDir, velRodaD, velRodaE = cinematicaVP(veh_pos, rpm_can)
 
-                #bufferA, angDir = getBuffer(bufferA, angDir, 5, 'mean')
-                angDir = cl.smooth_steering(angDir, 5)
+                bufferA, angDir = getBuffer(bufferA, angDir, 5, 'mean')
                 #print(veh_pos)
                 print("Angulo Direcao: {}; Curvatura: {}; Curvatura Esquerda: {}; Curvatura Direita: {};".format(angDir, R, left_curverad/100, right_curverad/100))
 
             else:
                 angDir = 25
-
             
                 if(veh_pos > 0.5):
                     angDir = angDir - 10
@@ -208,13 +206,11 @@ while True:
                 velRodaD = rpm_can
 
                 print("Posicao: {}; Angulo NOVO: {}".format(veh_pos, angDir))
-
             
             #Ajustar Angulo Direcao
             msgCanId = 0x82
             param = [angDir]
             vc.sendMsg(msgCanId, param)
-
 
             # Retrieve depth
             cam.retrieve_measure(depth, sl.MEASURE.DEPTH)
