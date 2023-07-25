@@ -76,15 +76,15 @@ class NodeDecisionMaker():
         if not np.isnan(distance):
             if np.isfinite(distance):
                 if distance <= distanceStop:
-                    print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
+                    #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
                     canID = 0x5C
                     flagBreakAEB = True
                 elif distance <= distanceBreak and not flagBreakYOLO:
-                    print("FREIA PID - Distância: {}".format(distance))
+                    #print("FREIA PID - Distância: {}".format(distance))
                     canID = 0x56
                     flagBreakAEB = True
             else:
-                print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
+                #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
                 canID = 0x5C
                 flagBreakAEB = True
 
@@ -145,6 +145,7 @@ class DecisionMaker():
         self.tSendMsgCAN = time.time() #Inicializa o temporizador de envio de msg na CAN
         self.timeMin = 0.001           #Intervalo de tempo para envio de msg na CAN
         self.socket = vc.openSocket()  #Inicializa o socket de comunicação com a CAN
+        self.dsu_ = dsu.DSU()
         self.dsu_.dsBuild(HOW_MANY_CAR)
         
         #Para teste
@@ -230,15 +231,17 @@ async def main_async():
                 param = [angDir]
                 vc.sendMsg(s, msgCanId, param)
 
-            #dm.sendInfoSotftware(angCan=dm.angle_can, rpmEsq=dm.rpm_can, rpmDir=dm.rpm_can)
+                #dm.sendInfoSotftware(angCan=dm.angle_can, rpmEsq=dm.rpm_can, rpmDir=dm.rpm_can)
 
-            for x in range(HOW_MANY_CAR):
-                if(x != dm.dsu_.dsFind(x) and dm.dsu_.dsFind(x) == ID_CAR):
-                    vc.sendMsg(s, 0x97, [x, 13, 13])
+                for x in range(HOW_MANY_CAR):
+                    if(x != dm.dsu_.dsFind(x) and dm.dsu_.dsFind(x) == ID_CAR):
+                        vc.sendMsg(s, 0x97, [x, 13, 13])
 
-            for x in range(HOW_MANY_CAR):
-                print(f"car {x} : father{dm.dsu_.dsFind(x)}")
-            print()
+                for x in range(HOW_MANY_CAR):
+                    print(f"car {x} : father {dm.dsu_.dsFind(x)}")
+                print()
+                print()
+                print()
 
                 '''
                 # recebe os parametros inciais definidos no codigo, depois do primiero inicio o software controla os parametros do veiculo
