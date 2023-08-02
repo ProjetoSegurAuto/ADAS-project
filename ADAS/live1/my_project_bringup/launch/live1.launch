@@ -5,7 +5,7 @@
     <node name="lanewarp" pkg="live1" type="lanewarp.py" output="screen"/>
     <node name="yolo" pkg="live1" type="yolo.py" output="screen"/> 
     <node name="dashboard" pkg="live1" type="dashboard.py" output="screen"/>
-    <node name="platoon_modeling" pkg="live1" type="platoon_modeling.py" output="screen"/>
+    <node name="modeling" pkg="live1" type="platoon_modeling.py" output="screen"/>
     <node name="decision_maker" pkg="live1" type="decision_makerV2.py" output="screen"/>
 
 
