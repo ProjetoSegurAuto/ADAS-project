@@ -195,6 +195,8 @@ async def main_async():
     global canParams
     global flagThrottle
 
+    global ID_CAR
+
     rospy.init_node("Decision_maker")
     print("O node Decision Maker foi iniciado")
 
@@ -279,8 +281,7 @@ async def main_async():
 
                         flagThrottle = True 
 
-                    else:
-                        if flagThrottle:
+                    elif flagThrottle:
                             canID = 0x56
                             canParams = [1, rpmDir, 1, rpmEsq]
                             vc.sendMsg(s, canID, canParams)
