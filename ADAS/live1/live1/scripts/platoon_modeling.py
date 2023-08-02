@@ -26,7 +26,8 @@ def main():
     MY_ID = 0 #altera para cada Orin
 
     nodeModeling = NodeModeling()                 #instanciando o objeto do No ros
-    dsu_ = dsu.DSU(HOW_MANY_CARS)
+    dsu_ = dsu.DSU()
+    dsu_.dsBuild(HOW_MANY_CARS)
 
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
