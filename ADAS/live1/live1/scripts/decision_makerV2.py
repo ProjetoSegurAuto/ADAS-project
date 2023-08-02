@@ -26,14 +26,13 @@ flagQRCode = False
 flagThrottle = True
 flagBreakAEB = False
 flagBreakYOLO = False
+flagBreakMSGLeader = False #implementar em algum callback (mensagem platoon)
 canID = 0x00
 canParams = [] 
 
 flagReceiveLeader = False
 
-HOW_MANY_CAR = 2
 ID_CAR = 0
-MY_LEADER = 0
 
 class NodeDecisionMaker():
     def __init__(self):
@@ -81,15 +80,12 @@ class NodeDecisionMaker():
         if not np.isnan(distance):
             if np.isfinite(distance):
                 if distance <= distanceStop:
-                    #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
                     canID = 0x5C
                     flagBreakAEB = True
                 elif distance <= distanceBreak and not flagBreakYOLO:
-                    #print("FREIA PID - Distância: {}".format(distance))
                     canID = 0x56
                     flagBreakAEB = True
             else:
-                #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
                 canID = 0x5C
                 flagBreakAEB = True
 
@@ -144,8 +140,6 @@ class NodeDecisionMaker():
     def callbackMyLeader(self, msg_leader):
         global flagReceiveLeader
         flagReceiveLeader = True
-        global MY_LEADER
-        MY_LEADER = msg_leader.data
         self.msgMyLeader = msg_leader.data
 
 class DecisionMaker():
@@ -156,15 +150,6 @@ class DecisionMaker():
         self.tSendMsgCAN = time.time() #Inicializa o temporizador de envio de msg na CAN
         self.timeMin = 0.001           #Intervalo de tempo para envio de msg na CAN
         self.socket = vc.openSocket()  #Inicializa o socket de comunicação com a CAN
-        # self.dsu_ = dsu.DSU()
-        # self.dsu_.dsBuild(HOW_MANY_CAR)
-        
-        # #Para teste
-        # car_u = dsu.Car(0, 10, 10)
-        # car_v = dsu.Car(1, 0, 10)
-
-        # self.dsu_.dsUnion(car_u, car_v)
-
 
     def initCar(self):
         print("Inicialização do carro autorizada!")
@@ -220,71 +205,20 @@ async def main_async():
 
     flagBreak = False
     
-    #flagObjectYOLOReceived = True
     while not flagVehicleCanInit:
         if flagVehiclePositionReceived and flagCurveRadiusReceived and flagDistanceReceived and flagSteeringReceived and flagObjectYOLOReceived:
             flagVehicleCanInit = True 
-            # modificar função initCar para receber os parametros da recInfoSoftware e iniciar o veiculo
             dm.initCar()
-            #dm.sendInfoSotftware(angCan=dm.angle_can, rpmEsq=dm.rpm_can, rpmDir=dm.rpm_can)
-    '''
-    flagQRCode = True
-    while not flagQRCode:
-        print('Flag QR Code: {}'.format(flagQRCode))
-        if flagVehiclePositionReceived and flagCurveRadiusReceived and flagDistanceReceived and flagSteeringReceived:
-            flagQRCode = True
-    '''
 
     while not rospy.is_shutdown():
         try:
             if dm.timeMin < time.time() - dm.tSendMsgCAN:
                 dm.tSendMsgCAN = time.time()
-                if(ID_CAR == MY_LEADER):
-
+                if(ID_CAR == nodeDecisionMaker.msgMyLeader):
                     angDir = nodeDecisionMaker.msgSteering
                     msgCanId = 0x82
                     param = [angDir]
                     vc.sendMsg(s, msgCanId, param)
-
-                    #dm.sendInfoSotftware(angCan=dm.angle_can, rpmEsq=dm.rpm_can, rpmDir=dm.rpm_can)
-
-                    # for x in range(HOW_MANY_CAR):
-                    #     if(x != dm.dsu_.dsFind(x) and dm.dsu_.dsFind(x) == ID_CAR):
-                    #         vc.sendMsg(s, 0x97, [x, 13, 13])
-
-                    # for x in range(HOW_MANY_CAR):
-                    #     print(f"car {x} : father {dm.dsu_.dsFind(x)}")
-                    # print()
-                    # print()
-                    # print()
-
-                    '''
-                    # recebe os parametros inciais definidos no codigo, depois do primiero inicio o software controla os parametros do veiculo
-                    #msgPlatoon, rpmdir, rpmesq = dm.recInfoSoftware()
-                    #if msgPlatoon == "":
-                    rpmDir = dm.rpm_can
-                    rpmEsq = dm.rpm_can
-                    #else:
-                        #rpmDir = rpmdir
-                        #rpmEsq = rpmesq
-                    '''
-                    '''
-                    breakingAEB = dm.AEB(nodeDecisionMaker.msgDepth)
-                    if not breakingAEB:
-                        breakingYolo = nodeDecisionMaker.msgObjectYOLO
-                        if not breakingYolo:
-                            msgCanId = 0x56
-                            param = [1, rpmDir, 1, rpmEsq]
-                            vc.sendMsg(s, msgCanId, param)
-                            print("Acelera: {}; {}".format(msgCanId, param))
-                        else:
-                            msgCanId = 0x5C
-                            param = [1, 0, 1, 0]
-                            vc.sendMsg(s, msgCanId, param)
-                            print("Pare: {}; {}".format(msgCanId, param))
-                    else: 
-                        print("AEB")  
-                    '''
 
                     if (flagBreakAEB or flagBreakYOLO):
                         vc.sendMsg(s, canID, canParams)
@@ -303,7 +237,29 @@ async def main_async():
                             flagThrottle = False 
                 else:
                     #comportamento do filho
-                    pass
+                    angDir = None # Recece do callback do Aruco
+                    msgCanId = 0x82
+                    param = [angDir]
+                    vc.sendMsg(s, msgCanId, param)
+
+                    if (flagBreakMSGLeader or flagBreakAEB or flagBreakYOLO):
+                        canID = 0x56
+                        canParams = [1, 0, 1, 0]
+                        vc.sendMsg(s, canID, canParams)
+                        print("Pare: {}; {}".format(hex(canID), canParams))
+
+                        flagThrottle = True 
+
+                    elif flagThrottle: # ta faltando um atraso no eixo X 
+                            canID = 0x56
+                            canParams = [1, rpmDir, 1, rpmEsq]
+                            vc.sendMsg(s, canID, canParams)
+                            print("Acelera: {}; {}".format(hex(canID), canParams))  
+                            print("flagBreakAEB: {}; flagBreakYOLO: {}; flagThrottle: {}.".format(flagBreakAEB, flagBreakYOLO, flagThrottle))
+                            
+                            flagThrottle = False 
+                    
+
             print(vc.logCAN(s))
             gc.collect()
 
