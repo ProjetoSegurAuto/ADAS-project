@@ -225,68 +225,71 @@ async def main_async():
         try:
             if dm.timeMin < time.time() - dm.tSendMsgCAN:
                 dm.tSendMsgCAN = time.time()
-                angDir = nodeDecisionMaker.msgSteering
+                if(ID_CAR == dm.dsu_.dsFind(ID_CAR)):
 
-                msgCanId = 0x82
-                param = [angDir]
-                vc.sendMsg(s, msgCanId, param)
+                    angDir = nodeDecisionMaker.msgSteering
+                    msgCanId = 0x82
+                    param = [angDir]
+                    vc.sendMsg(s, msgCanId, param)
 
-                #dm.sendInfoSotftware(angCan=dm.angle_can, rpmEsq=dm.rpm_can, rpmDir=dm.rpm_can)
+                    #dm.sendInfoSotftware(angCan=dm.angle_can, rpmEsq=dm.rpm_can, rpmDir=dm.rpm_can)
 
-                for x in range(HOW_MANY_CAR):
-                    if(x != dm.dsu_.dsFind(x) and dm.dsu_.dsFind(x) == ID_CAR):
-                        vc.sendMsg(s, 0x97, [x, 13, 13])
+                    for x in range(HOW_MANY_CAR):
+                        if(x != dm.dsu_.dsFind(x) and dm.dsu_.dsFind(x) == ID_CAR):
+                            vc.sendMsg(s, 0x97, [x, 13, 13])
 
-                for x in range(HOW_MANY_CAR):
-                    print(f"car {x} : father {dm.dsu_.dsFind(x)}")
-                print()
-                print()
-                print()
+                    for x in range(HOW_MANY_CAR):
+                        print(f"car {x} : father {dm.dsu_.dsFind(x)}")
+                    print()
+                    print()
+                    print()
 
-                '''
-                # recebe os parametros inciais definidos no codigo, depois do primiero inicio o software controla os parametros do veiculo
-                #msgPlatoon, rpmdir, rpmesq = dm.recInfoSoftware()
-                #if msgPlatoon == "":
-                rpmDir = dm.rpm_can
-                rpmEsq = dm.rpm_can
-                #else:
-                    #rpmDir = rpmdir
-                    #rpmEsq = rpmesq
-                '''
-                '''
-                breakingAEB = dm.AEB(nodeDecisionMaker.msgDepth)
-                if not breakingAEB:
-                    breakingYolo = nodeDecisionMaker.msgObjectYOLO
-                    if not breakingYolo:
-                        msgCanId = 0x56
-                        param = [1, rpmDir, 1, rpmEsq]
-                        vc.sendMsg(s, msgCanId, param)
-                        print("Acelera: {}; {}".format(msgCanId, param))
-                    else:
-                        msgCanId = 0x5C
-                        param = [1, 0, 1, 0]
-                        vc.sendMsg(s, msgCanId, param)
-                        print("Pare: {}; {}".format(msgCanId, param))
-                else: 
-                    print("AEB")  
-                '''
+                    '''
+                    # recebe os parametros inciais definidos no codigo, depois do primiero inicio o software controla os parametros do veiculo
+                    #msgPlatoon, rpmdir, rpmesq = dm.recInfoSoftware()
+                    #if msgPlatoon == "":
+                    rpmDir = dm.rpm_can
+                    rpmEsq = dm.rpm_can
+                    #else:
+                        #rpmDir = rpmdir
+                        #rpmEsq = rpmesq
+                    '''
+                    '''
+                    breakingAEB = dm.AEB(nodeDecisionMaker.msgDepth)
+                    if not breakingAEB:
+                        breakingYolo = nodeDecisionMaker.msgObjectYOLO
+                        if not breakingYolo:
+                            msgCanId = 0x56
+                            param = [1, rpmDir, 1, rpmEsq]
+                            vc.sendMsg(s, msgCanId, param)
+                            print("Acelera: {}; {}".format(msgCanId, param))
+                        else:
+                            msgCanId = 0x5C
+                            param = [1, 0, 1, 0]
+                            vc.sendMsg(s, msgCanId, param)
+                            print("Pare: {}; {}".format(msgCanId, param))
+                    else: 
+                        print("AEB")  
+                    '''
 
-                if (flagBreakAEB or flagBreakYOLO):
-                    vc.sendMsg(s, canID, canParams)
-                    print("Pare: {}; {}".format(hex(canID), canParams))
-                    print("flagBreakAEB: {}; flagBreakYOLO: {}; flagThrottle: {}.".format(flagBreakAEB, flagBreakYOLO, flagThrottle))
-
-                    flagThrottle = True 
-
-                else:
-                    if flagThrottle:
-                        canID = 0x56
-                        canParams = [1, rpmDir, 1, rpmEsq]
+                    if (flagBreakAEB or flagBreakYOLO):
                         vc.sendMsg(s, canID, canParams)
-                        print("Acelera: {}; {}".format(hex(canID), canParams))  
+                        print("Pare: {}; {}".format(hex(canID), canParams))
                         print("flagBreakAEB: {}; flagBreakYOLO: {}; flagThrottle: {}.".format(flagBreakAEB, flagBreakYOLO, flagThrottle))
-                        
-                        flagThrottle = False 
+
+                        flagThrottle = True 
+
+                    else:
+                        if flagThrottle:
+                            canID = 0x56
+                            canParams = [1, rpmDir, 1, rpmEsq]
+                            vc.sendMsg(s, canID, canParams)
+                            print("Acelera: {}; {}".format(hex(canID), canParams))  
+                            print("flagBreakAEB: {}; flagBreakYOLO: {}; flagThrottle: {}.".format(flagBreakAEB, flagBreakYOLO, flagThrottle))
+                            
+                            flagThrottle = False 
+                else:
+                    pass
             print(vc.logCAN(s))
             gc.collect()
 
