@@ -4,7 +4,7 @@ Software de alto nivel do nosso sistema
 
 ## Run
 
-- Cole a pasta no caminho 'Home/catkin_ws/src/'
+- Cole a pasta no caminho `Home/catkin_ws/src/`
 - Rode o seguinte comando no terminal:
 
   ```
