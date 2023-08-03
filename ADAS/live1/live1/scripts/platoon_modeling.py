@@ -23,12 +23,11 @@ def main():
     rospy.init_node('Modeling')                #inicia o Node
     rospy.loginfo('O node modeling foi iniciado!')
     
-    HOW_MANY_CARS = 110 #pior caso
     MY_ID = 0 #altera para cada Orin
 
     nodeModeling = NodeModeling()                 #instanciando o objeto do No ros
     dsu_ = dsu.DSU()
-    dsu_.dsBuild(HOW_MANY_CARS)
+    dsu_.dsBuild()
 
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
