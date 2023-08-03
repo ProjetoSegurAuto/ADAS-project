@@ -11,7 +11,7 @@ import vector as vc
 import numpy as np
 import asyncio
 from threading import Thread
-from std_msgs.msg import Float64, Float64MultiArray, String
+from std_msgs.msg import Float64, Float64MultiArray, String, Int32
 import ast
 import gc
 
@@ -42,7 +42,7 @@ class NodeDecisionMaker():
         self.msgCurveRadius = Float64MultiArray()
         self.msgObjectYOLO = String()
         self.msgQRCode = Float64()
-        self.msgMyLeader = int()
+        self.msgMyLeader = Int32()
 
         self.subDepth = rospy.Subscriber(
             'TPC3Depth', Float64, self.callbackDepth)
@@ -57,7 +57,7 @@ class NodeDecisionMaker():
         self.subQRCode = rospy.Subscriber(
             'TPC6QRCode', Float64, self.callbackQRCode)
         self.subModeling = rospy.Subscriber(
-            'TPC9Leader', int, self.callbackMyLeader)
+            'TPC9Leader', Int32, self.callbackMyLeader)
 
     def callbackDepth(self, msg_depth):
         global flagDistanceReceived
@@ -214,6 +214,7 @@ async def main_async():
         try:
             if dm.timeMin < time.time() - dm.tSendMsgCAN:
                 dm.tSendMsgCAN = time.time()
+                print(f"my id: {ID_CAR} | my leader: {nodeDecisionMaker.msgMyLeader}")
                 if(ID_CAR == nodeDecisionMaker.msgMyLeader):
                     angDir = nodeDecisionMaker.msgSteering
                     msgCanId = 0x82

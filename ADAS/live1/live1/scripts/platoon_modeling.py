@@ -6,23 +6,24 @@
 #Descrição: modela o platoon
 
 import rospy
+from std_msgs.msg import Int32
 import dsu
 
 class NodeModeling():
     def __init__(self):
         self.msgLeader = int()
-        self.pubLeader = rospy.Publisher('TPC9Leader', int ,queue_size=1)
+        self.pubLeader = rospy.Publisher('TPC9Leader', Int32 ,queue_size=1)
         
     def pubMsgLeader(self, msg_leader):
         self.msgLeader = msg_leader #pegar o pai na dsu
-        self.pubLeader.publish(self.msgLeader)
+        self.pubLeader.publish(Int32(self.msgLeader))
 
 def main():
     #Setup ROS
     rospy.init_node('Modeling')                #inicia o Node
     rospy.loginfo('O node modeling foi iniciado!')
     
-    HOW_MANY_CARS = 2
+    HOW_MANY_CARS = 110 #pior caso
     MY_ID = 0 #altera para cada Orin
 
     nodeModeling = NodeModeling()                 #instanciando o objeto do No ros
