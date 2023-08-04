@@ -7,6 +7,7 @@
 
 import rospy
 from std_msgs.msg import Int32
+import vector
 import dsu
 
 class NodeModeling():
@@ -29,9 +30,20 @@ def main():
     dsu_ = dsu.DSU()
     dsu_.dsBuild()
 
+    #Dados do logger
+    last_node = -1
+    last_pos = -1
+    last_action = -1
+
+    curr_node = -1
+    curr_pos = -1
+    curr_action = -1
+
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
             #RECEBE VIA RF->VECTOR OS COMANDOS PARA UNIÃO
+            if(last_node != curr_node and last_pos != curr_pos and last_action != curr_action):
+                pass
 
             nodeModeling.pubMsgLeader(dsu_.dsFind(MY_ID))          
         except Exception as e: 

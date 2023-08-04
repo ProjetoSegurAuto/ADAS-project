@@ -252,14 +252,14 @@ async def main_async():
                         flagThrottle = True 
 
                     elif flagThrottle: # ta faltando um atraso no eixo X 
-                            canID = 0x56
-                            canParams = [1, rpmDir, 1, rpmEsq]
-                            vc.sendMsg(s, canID, canParams)
-                            print("Acelera: {}; {}".format(hex(canID), canParams))  
-                            print("flagBreakAEB: {}; flagBreakYOLO: {}; flagThrottle: {}.".format(flagBreakAEB, flagBreakYOLO, flagThrottle))
-                            
-                            flagThrottle = False 
-                    
+                        canID = 0x56
+                        canParams = [1, rpmDir, 1, rpmEsq]
+                        vc.sendMsg(s, canID, canParams)
+                        print("Acelera: {}; {}".format(hex(canID), canParams))  
+                        print("flagBreakAEB: {}; flagBreakYOLO: {}; flagThrottle: {}.".format(flagBreakAEB, flagBreakYOLO, flagThrottle))
+                        
+                        flagThrottle = False 
+                
 
             print(vc.logCAN(s))
             gc.collect()
