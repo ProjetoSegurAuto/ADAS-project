@@ -9,196 +9,203 @@ import rospy
 import time
 import vector as vc
 import numpy as np
-import asyncio
 from threading import Thread
 from std_msgs.msg import Float64, Float64MultiArray, String
 import ast
 import gc
 
-flagDistanceReceived = False
-flagVehiclePositionReceived = False
-flagSteeringReceived = False
-flagCurveRadiusReceived = False
-flagObjectYOLOReceived = False
-flagVehicleCanInit = False
-flagQRCode = False
+flag_distance_received = False
+flag_vehicle_position_received = False
+flag_steering_received = False
+flag_curve_radius_received = False
+flag_object_yolo_received = False
+flag_vehicle_can_init = False
+flag_qr_code = False
 
-flagThrottle = True
-flagBreakAEB = False
-flagBreakYOLO = False
-canID = 0x00
-canParams = []
+flag_throttle = True
+flag_break_aeb = False
+flag_break_yolo = False
+can_id = 0x00
+can_params = []
 
 
-class NodeDecisionMaker():
+class NodeDecisionMaker:
     def __init__(self):
-        self.msgDepth = Float64()
-        self.msgVehiclePosition = Float64()
-        self.msgSteering = Float64()
-        self.msgCurveRadius = Float64MultiArray()
-        self.msgObjectYOLO = String()
-        self.msgQRCode = Float64()
+        self.msg_depth = Float64()
+        self.msg_vehicle_position = Float64()
+        self.msg_steering = Float64()
+        self.msg_curve_radius = Float64MultiArray()
+        self.msg_object_yolo = String()
+        self.msg_qr_code = Float64()
 
-        self.subDepth = rospy.Subscriber(
-            'TPC3Depth', Float64, self.callbackDepth)
-        self.subVehiclePosition = rospy.Subscriber(
-            'TPC4VehiclePosition', Float64, self.callbackVehiclePosition)
-        self.subSteering = rospy.Subscriber(
-            'TPC4Steering', Float64, self.callbackSteering)
-        self.subCurveRadius = rospy.Subscriber(
-            'TPC5CurveRadius', Float64MultiArray, self.callbackCurveRadius)
-        self.subObjectYOLO = rospy.Subscriber(
-            'TPC3ObjectYOLO', String, self.callbackObjectYOLO)
-        self.subQRCode = rospy.Subscriber(
-            'TPC6QRCode', Float64, self.callbackQRCode)
+        self.sub_depth = rospy.Subscriber('TPC3Depth', Float64, self.callback_depth)
+        self.sub_vehicle_position = rospy.Subscriber('TPC4VehiclePosition', Float64, self.callback_vehicle_position)
+        self.sub_steering = rospy.Subscriber('TPC4Steering', Float64, self.callback_steering)
+        self.sub_curve_radius = rospy.Subscriber('TPC5CurveRadius', Float64MultiArray, self.callback_curve_radius)
+        self.sub_object_yolo = rospy.Subscriber('TPC3ObjectYOLO', String, self.callback_object_yolo)
+        self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
 
-    def callbackDepth(self, msg_depth):
-        global flagDistanceReceived
+    def callback_depth(self, msg_depth):
+        global flag_distance_received
 
-        flagDistanceReceived = True
-        self.AEB(msg_depth.data)
+        flag_distance_received = True
+        self.aeb(msg_depth.data)
 
-        self.msgDepth = msg_depth.data
+        self.msg_depth = msg_depth.data
 
-    def AEB(self, distance):
-        global flagBreakAEB
-        global canID
-        global canParams
+    def callback_vehicle_position(self, msg_vehicle_position):
+        global flag_vehicle_position_received
+        flag_vehicle_position_received = True
+        self.msg_vehicle_position = msg_vehicle_position.data
 
-        flagBreakAEB = False
-        distanceBreak = 1.8  # 1.2      #Define a distância que o freio de emergência será acionado
-        distanceStop = 1.0  # 0.5      #Define a distância que o carro vai parar
+    def callback_steering(self, msg_steering):
+        global flag_steering_received
+        flag_steering_received = True
+        self.msg_steering = int(msg_steering.data)
+
+    def callback_curve_radius(self, msg_radius_curve):
+        global flag_curve_radius_received
+        flag_curve_radius_received = True
+        self.msg_curve_radius = msg_radius_curve.data
+
+    def callback_object_yolo(self, msg_object_yolo):
+        global flag_object_yolo_received
+
+        flag_object_yolo_received = True
+        json_object_yolo = ast.literal_eval(msg_object_yolo.data)
+        self.yolo_decision(json_object_yolo)
+
+        self.msg_object_yolo = json_object_yolo
+
+    def yolo_decision(self, json_object_yolo):
+        global flag_break_yolo
+        global can_id
+        global can_params
+
+        flag_break_yolo = False
+        for object in json_object_yolo:
+            if json_object_yolo[object]['classId'] == "stop sign":
+                print("FREIA PID - Placa PARE")
+                flag_break_yolo = True
+                can_id = 0x56
+                can_params = [1, 0, 1, 0]
+
+    def aeb(self, distance):
+        global flag_break_aeb
+        global can_id
+        global can_params
+
+        flag_break_aeb = False
+        distance_break = 1.4
+        distance_stop = 1.0
 
         if not np.isnan(distance):
             if np.isfinite(distance):
-                if distance < distanceStop:
-                    # print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
-                    canID = 0x5C
-                    flagBreakAEB = True
-                elif distance < distanceBreak:
-                    # print("FREIA PID - Distância: {}".format(distance))
-                    canID = 0x56
-                    flagBreakAEB = True
+                if distance < distance_stop:
+                    print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
+                    can_id = 0x5C
+                    flag_break_aeb = True
+                elif distance < distance_break:
+                    print("FREIA PID - Distância: {}".format(distance))
+                    can_id = 0x56
+                    flag_break_aeb = True
             else:
-                # print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
-                canID = 0x5C
-                flagBreakAEB = True
+                print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
+                can_id = 0x5C
+                flag_break_aeb = True
 
-        if flagBreakAEB:
-            canParams = [1, 0, 1, 0]
+        if flag_break_aeb:
+            can_params = [1, 0, 1, 0]
 
-    def callbackVehiclePosition(self, msg_vehiclePosition):
-        global flagVehiclePositionReceived
-        flagVehiclePositionReceived = True
-        self.msgVehiclePosition = msg_vehiclePosition.data
-
-    def callbackSteering(self, msg_steering):
-        global flagSteeringReceived
-        flagSteeringReceived = True
-        self.msgSteering = int(msg_steering.data)
-
-    def callbackCurveRadius(self, msg_radiusCurve):
-        global flagCurveRadiusReceived
-        flagCurveRadiusReceived = True
-        self.msgCurveRadius = msg_radiusCurve.data
-
-    def callbackObjectYOLO(self, msg_objectYOLO):
-        global flagObjectYOLOReceived
-
-        flagObjectYOLOReceived = True
-        jsonObjectYOLO = ast.literal_eval(msg_objectYOLO.data)
-        self.yoloDecision(jsonObjectYOLO)
-
-        self.msgObjectYOLO = jsonObjectYOLO
-
-    def yoloDecision(self, jsonObjectYOLO):
-        global flagBreakYOLO
-        global canID
-        global canParams
-
-        flagBreakYOLO = False
-        for object in jsonObjectYOLO:
-            if (jsonObjectYOLO[object]['classId'] == "stop sign"):
-                print("FREIA PID - Placa PARE")
-                flagBreakYOLO = True
-                canID = 0x56
-                canParams = [1, 0, 1, 0]
-
-    def callbackQRCode(self, msg_QRCode):
-        global flagQRCode
-        flagQRCode = True
-        self.msgQRCode = msg_QRCode
+    def callback_qr_code(self, msg_qr_code):
+        global flag_qr_code
+        flag_qr_code = True
+        self.msg_qr_code = msg_qr_code
 
 
-class DecisionMakerFSM():
-    global flagVehicleCanInit
-    global flagBreakAEB
-    global flagBreakYOLO
-    global canID
-    global canParams
+class DecisionMakerFSM:
+    global flag_vehicle_can_init
+    global flag_break_aeb
+    global flag_break_yolo
+    global can_id
+    global can_params
 
-    def __init__(self):
-        self.state = "INITIAL"
+    def __init__(self, node_decision_maker):
+        self.dic_states = {0: 'INITIAL',1: 'NORMAL_DRIVING', 2: 'EMERGENCY_BRAKE'}
+
+        self.state_transitions = {
+            0: lambda: 1 if flag_vehicle_can_init else 0,
+            1: lambda: 2 if flag_break_aeb or flag_break_yolo else 1,
+            2: lambda: 1 if  not flag_break_aeb and not flag_break_yolo and node_decision_maker.msg_depth > self.safe_distance else 2
+        }   
+        self.safe_distance = 1.4  #alterar para que a distacia de parada seja uma flag global  
+
+        self.state = 0
         self.rpm_can = 50  # Define a velociade de inicio do carro
         # Define o angulo de inicio da direção, no ideal começamos com ele ao centro
         self.angle_can = 25
-        self.tSendMsgCAN = time.time()  # Inicializa o temporizador de envio de msg na CAN
-        self.timeMin = 0.001  # Intervalo de tempo para envio de msg na CAN
+        # Inicializa o temporizador de envio de msg na CAN
+        self.t_send_msg_can = time.time()
+        self.time_min = 0.001  # Intervalo de tempo para envio de msg na CAN
         self.socket = vc.openSocket()  # Inicializa o socket de comunicação com a CAN
+        self.emergency_break_start = 0
+        self.wait_time = 1 #em segundos
 
     def update_state(self, node_decision_maker):
-        if self.state == "INITIAL":
-            if flagVehicleCanInit:
-                self.state = "NORMAL_DRIVING"
-        elif self.state == "NORMAL_DRIVING":
-            if flagBreakAEB or flagBreakYOLO:
-                self.state = "EMERGENCY_BRAKE"
-        elif self.state == "EMERGENCY_BRAKE":
-            if not flagBreakAEB and not flagBreakYOLO:
-                self.state = "NORMAL_DRIVING"
-
+        #if self.state != 2 and (flag_break_aeb and flag_break_yolo):
+            #self.emergency_break_start = time.time() 
+        self.state = self.state_transitions[self.state]()
         self.actions(node_decision_maker)
+            #time.sleep(0.02)
 
     def actions(self, node_decision_maker):
+        global flag_vehicle_can_init
+        if self.state == 0:
+            if flag_vehicle_position_received and flag_steering_received and flag_curve_radius_received and flag_distance_received and flag_object_yolo_received:
+                print("Estado: {}. Inicialização do carro autorizada!".format(self.dic_states[self.state]))
+                flag_vehicle_can_init = True
+                try:
+                    msg_can_id = 0x56
+                    param = [1, self.rpm_can, 1, self.rpm_can]
+                    vc.sendMsg(self.socket, msg_can_id, param)
+                    print("Mensagem para ECU POWERTRAIN: ", msg_can_id, param)
 
-        if self.state == "INITIAL":
-            print("Inicialização do carro autorizada!")
-            try:
-                msgCanId = 0x56
+                    msg_can_id = 0x82
+                    param = [self.angle_can]
+                    vc.sendMsg(self.socket, msg_can_id, param)
+                    print("Mensagem para ECU DIREÇÃO: ", msg_can_id, param)
+
+                except Exception as ex:
+                    print("Falha ao iniciar o carro: {}".format(ex))
+
+        elif self.state == 1:
+            print("Estado: {}. Seguindo as faixas".format(self.dic_states[self.state]))
+            if self.time_min < time.time() - self.t_send_msg_can:
+                self.t_send_msg_can = time.time()
+                ang_dir = node_decision_maker.msg_steering
+
+                msg_can_id = 0x82
+                param = [ang_dir]
+                vc.sendMsg(self.socket, msg_can_id, param)
+
+                msg_can_id = 0x56
                 param = [1, self.rpm_can, 1, self.rpm_can]
-                vc.sendMsg(self.socket, msgCanId, param)
-                print("Mensagem para ECU POWERTRAIN: ", msgCanId, param)
+                vc.sendMsg(self.socket, msg_can_id, param)
 
-                msgCanId = 0x82
-                param = [self.angle_can]
-                vc.sendMsg(self.socket, msgCanId, param)
-                print("Mensagem para ECU DIREÇÃO: ", msgCanId, param)
-
-            except Exception as ex:
-                print("Falha ao iniciar o carro: {}".format(ex))
-                pass
-
-        elif self.state == "NORMAL_DRIVING":
-            print("Seguindo as faixas")
-            if self.timeMin < time.time() - self.tSendMsgCAN:
-                self.tSendMsgCAN = time.time()
-                angDir = NodeDecisionMaker().msgSteering
-
-                msgCanId = 0x82
-                param = [angDir]
-                vc.sendMsg(self.socket, msgCanId, param)
-
-        elif self.state == "EMERGENCY_BRAKE":
-            vc.sendMsg(self.socket, canID, canParams)
-            print("Pare: {}; {}".format(hex(canID), canParams))
-            print("flagBreakAEB: {}; flagBreakYOLO: {}.".format(
-                flagBreakAEB, flagBreakYOLO))
+        elif self.state == 2:
+            print("Estado: {}. Emergência!".format(self.dic_states[self.state]))
+            if self.time_min < time.time() - self.t_send_msg_can:
+                self.t_send_msg_can = time.time()
+                vc.sendMsg(self.socket, can_id, can_params)             
 
 
 def main():
-    loop = asyncio.get_event_loop()
-    decision_maker_fsm = DecisionMakerFSM()
+    rospy.init_node("Decisionmaker")
+    print("O node Decision Maker foi iniciado")
+
     node_decision_maker = NodeDecisionMaker()
+
+    decision_maker_fsm = DecisionMakerFSM(node_decision_maker)
 
     s = decision_maker_fsm.socket
 
@@ -207,26 +214,25 @@ def main():
             decision_maker_fsm.update_state(node_decision_maker)
             decision_maker_fsm.actions(node_decision_maker)
 
-            print(vc.logCAN(s))
+            #print(vc.logCAN(s))
             gc.collect()
 
         except Exception as ex:
             print("Exception: {}".format(ex))
-            pass
 
         except KeyboardInterrupt:
             print("Exception: KeyboardInterrupt")
 
             rpm = 0
-            msgCanId = 0x56
+            msg_can_id = 0x56
             param = [1, rpm, 1, rpm]
             print("FREIA PID - KeyboardInterrupt")
-            vc.sendMsg(s, msgCanId, param)
+            vc.sendMsg(s, msg_can_id, param)
 
-            angDir = 25
-            msgCanId = 0x82
-            param = [angDir]
-            vc.sendMsg(s, msgCanId, param)
+            ang_dir = 25
+            msg_can_id = 0x82
+            param = [ang_dir]
+            vc.sendMsg(s, msg_can_id, param)
 
             s.close()
             break

@@ -96,7 +96,7 @@ def logCAN(s):
 
     retorno = ""
     for l in log:
-        retorno = retorno + "{}: {} | ".format(l, log[l])
+        retorno = retorno + "{}: {} | time: {}".format(l, log[l], time.time())
     #print (retorno)
     return retorno
     

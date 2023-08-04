@@ -8,28 +8,31 @@ s = vc.openSocket()
 print(s)
 tSendMsgCAN = time.time()  
 angDir = 1
-rpmCan = 15
+rpmCan = 20
 
 while True:
         try: 
                 if 0.05 < time.time() - tSendMsgCAN:
-                        #msgCanId = 0x56
-                        #param = [1, rpmCan, 1, rpmCan]
+                        msgCanId = 0x56
+                        param = [1, rpmCan, 1, rpmCan]
                         #msgCanId = 0x82
                         #param = [angDir]
-                        msgCanId = 0x94
-                        param = [3, 0, 0, 0, angDir, rpmCan, rpmCan]
+                        #msgCanId = 0x94
+                        #param = [3, 0, 0, 0, angDir, rpmCan, rpmCan]
                         #print(param)
-                        vc.sendMsg(s, msgCanId, param)
+                        
                         #msgPlatoon, retornoAng, retornoRPM = vc.logCanPlatoon(s)
                         #print(msgPlatoon)
-                        vc.logCAN(s)
+
+                        vc.sendMsg(s, msgCanId, param)
+                        print(vc.logCAN(s))
 
 
         except KeyboardInterrupt:
-                msgCanId = 0x82
-                #msgCanId = 0x56
-                param = [25]
-                #param = [1,0,1,0]
+                #msgCanId = 0x82                
+                #param = [25]
+
+                msgCanId = 0x5C
+                param = [1,0,1,0]
                 vc.sendMsg(s, msgCanId, param)
                 break

@@ -65,16 +65,30 @@ class LaneWarp():
 
         height = imagem.shape[0]        
         width = imagem.shape[1]
-        img_size = (1280, 720)
+        img_size = (width, height)
 
-        src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
-        #src = np.float32([[0, height], [width, height], [200, 630], [(width-200), 630]])
+        #src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
+        #dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
+
+        src = np.float32([[0, height], [width, height], [210, 530], [(width-235), 530]])
         dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
+
+        img = imagem
+        cv2.circle(img, (0, height), 10, (255, 0, 0), 5)
+        cv2.circle(img, (width, height), 10, (255, 255, 0), 5)
+        #cv2.circle(img, (200, 530), 10, (255, 0, 255), 5)
+        #cv2.circle(img, ((width-200), 530), 10, (255, 255, 255), 5)
+        cv2.circle(img, (210, 530), 10, (255, 0, 255), 5)
+        cv2.circle(img, ((width-235), 530), 10, (255, 255, 255), 5)
+        #cv2.imshow("Warp Dots", img)
 
         M = cv2.getPerspectiveTransform(src, dst)               #[estudar]
         M_inv = cv2.getPerspectiveTransform(dst, src)           #[estudar]
         warp = cv2.warpPerspective(imagem, M, img_size)         #[estudar]
         # warp_inv = cv2.warpPerspective(img, M_inv, img_size)
+        
+        #cv2.imshow("Warp", warp)
+        #cv2.waitKey(1)
 
         return warp, M_inv
     
@@ -299,7 +313,7 @@ class LaneWarp():
         return linex, liney, linebufferx, linebuffery
 
     def cinematicaPurePursuit(self, distance_to_center):
-        offSet = 1.05#1.2
+        offSet = 0.9 #1.05#1.2
         wheelbase = 0.75  
         target_point = [offSet, distance_to_center]
 
