@@ -218,7 +218,8 @@ def main():
             gc.collect()
 
         except Exception as ex:
-            print("Exception: {}".format(ex))
+            pass
+            #print("Exception: {}".format(ex))
 
         except KeyboardInterrupt:
             print("Exception: KeyboardInterrupt")
