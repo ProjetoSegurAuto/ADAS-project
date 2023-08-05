@@ -1,22 +1,20 @@
 import socket
 import time
 
-def logCANModeling(s):
-    msgECU = s.recv(14)
-    log = {}
+log = {}
 
-    if msgECU[2] == 0x98:
-        log['ECU'] = 'Comunicacao - Platoon Action'
-        log['ID visitante'] = msgECU[10]
-        log['Posicao'] = msgECU[11]
-        log['Action'] = msgECU[12]
-
-    ans = [msgECU[10], msgECU[11], msgECU[12]]
+def logCANModeling():
+    #msgECU = s.recv(14)
+    #print(msgECU)
+    
+    ans = ""
+    
+    if 'ID visitante' in log:
+        ans = [log['ID visitante'], log['Posicao'], log['Action']]
     return ans
 
 def logCAN(s):
     msgECU = s.recv(14)
-    log = {}
     
     if msgECU[2] == 0x80:
         log['ECU'] = 'Direcao'
@@ -100,7 +98,7 @@ def logCAN(s):
         log['radarDistLong'] = ((((msgECU[7] << 8) + msgECU[8]) >> 3)*0.2) - 500
         log['radarDistLat'] = ((((msgECU[8] & 0x03) << 8) + msgECU[9])*0.2) - 102.3
 
-    elif msgECU[2] == 0x98:
+    elif msgECU[2] == 0x97:
         log['ECU'] = 'Comunicacao - Platoon Action'
         #log['Reservado'] = msgECU[4]
         log['ID visitante'] = msgECU[10]
@@ -217,7 +215,7 @@ def sendMsg(s, msgCANId, value):
             mesg[13] = value[5]      #RpmEsq
             mesg[14] = value[6]      #RpmDir
 
-        elif msgCANId == 0x97:
+        elif msgCANId == 0x98:
             mesg[0]  = 1
             mesg[12] = value[0]      #Direção
             mesg[13] = value[1]      #RpmEsq
@@ -264,7 +262,7 @@ def logCanDir(msgECU):
 def logCanDir(s):
 
     msgECU = s.recv(14)
-    log = {}
+    
     
     if msgECU[2] == 0x80:
         log['ECU'] = 'Direcao'
@@ -300,7 +298,6 @@ def logCanDir(s):
 def logCanPlatoon(s):
 
     msgECU = s.recv(14)
-    log = {}
 
     if msgECU[2] == 0x93:
         #print (msgECU)
