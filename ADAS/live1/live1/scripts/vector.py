@@ -1,6 +1,19 @@
 import socket
 import time
 
+def logCANModeling(s):
+    msgECU = s.recv(14)
+    log = {}
+
+    if msgECU[2] == 0x98:
+        log['ECU'] = 'Comunicacao - Platoon Action'
+        log['ID visitante'] = msgECU[10]
+        log['Posicao'] = msgECU[11]
+        log['Action'] = msgECU[12]
+
+    ans = [msgECU[10], msgECU[11], msgECU[12]]
+    return ans
+
 def logCAN(s):
     msgECU = s.recv(14)
     log = {}
