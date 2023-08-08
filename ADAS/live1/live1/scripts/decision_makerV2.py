@@ -13,6 +13,7 @@ import asyncio
 from threading import Thread
 from std_msgs.msg import Float64, Float64MultiArray, String, Int32
 import ast
+import pickle
 import gc
 
 flagDistanceReceived = False
@@ -213,6 +214,13 @@ async def main_async():
     while not rospy.is_shutdown():
         try:
             if dm.timeMin < time.time() - dm.tSendMsgCAN:
+
+                act_rcv = vc.logCANModeling(s)
+
+                log_action = open("log_platoon_action.bin", "wb")
+                pickle.dump(act_rcv, log_action)
+                log_action.close()
+
                 dm.tSendMsgCAN = time.time()
                 print(f"my id: {ID_CAR} | my leader: {nodeDecisionMaker.msgMyLeader}")
                 if(ID_CAR == nodeDecisionMaker.msgMyLeader):

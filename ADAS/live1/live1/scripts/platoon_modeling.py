@@ -7,7 +7,7 @@
 
 import rospy
 from std_msgs.msg import Int32
-import vector as vc
+import pickle
 import dsu
 
 class NodeModeling():
@@ -39,28 +39,32 @@ def main():
     curr_pos = -1
     curr_action = -1
 
-    while not rospy.is_shutdown():
+    while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
             #RECEBE VIA RF->VECTOR OS COMANDOS PARA UNIÃO
-            can_msg = vc.logCANModeling()
-            
-            if len(can_msg) == 3:
+            #can_msg = vc.logCANModeling(vc.openSocket())
+
+            log_action =  open("log_platoon_action.bin", "rb")
+            can_msg = pickle.load(log_action)
+            log_action.close()
+
+            if(len(can_msg) == 3):
                 curr_node = int(can_msg[0])
                 curr_pos = int(can_msg[1]) 
                 curr_action = int(can_msg[2])
 
-                if(last_node != curr_node and last_pos != curr_pos and last_action != curr_action):
-                    if curr_action == 1:
-                        car_u = dsu.Car(MY_ID, 0, 0) #minha posição é o segundo argumento, precisa implementar
-                        car_v = dsu.Car(curr_node, curr_pos, 0)
-                        dsu_.dsUnion(car_u, car_v)
-                    else:
-                        car_u = dsu.Car(curr_node, curr_pos, 0)
-                        dsu_.dsLeave(car_u)
-        
-                    last_node = curr_node
-                    last_pos = curr_pos
-                    last_action = curr_action
+            if(last_node != curr_node and last_pos != curr_pos and last_action != curr_action):
+                if curr_action == 1:
+                    car_u = dsu.Car(MY_ID, 0, 0) #minha posição é o segundo argumento, precisa implementar
+                    car_v = dsu.Car(curr_node, curr_pos, 0)
+                    dsu_.dsUnion(car_u, car_v)
+                else:
+                    car_u = dsu.Car(curr_node, curr_pos, 0)
+                    dsu_.dsLeave(car_u)
+    
+                last_node = curr_node
+                last_pos = curr_pos
+                last_action = curr_action
                 
 
             nodeModeling.pubMsgLeader(dsu_.dsFind(MY_ID))          
