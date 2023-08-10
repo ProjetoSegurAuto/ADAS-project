@@ -340,7 +340,7 @@ class LaneWarp():
     '''
     def evaluate_trajectory_quality(self, center_lane_positions, left_lane_positions=None, right_lane_positions=None, previous_center_lane_positions=None):
     
-        MIN_DISTANCE = 50
+        MIN_DISTANCE = 100
         print(center_lane_positions)
         
         #for i in range(len(center_lane_positions)):
