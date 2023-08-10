@@ -8,15 +8,13 @@ class Car:
 
 class DSU:
     def __init__(self):
-        self.MAXN = 50
+        self.MAXN = 110
         
         self.ds = np.arange(self.MAXN, dtype=int)
         self.size = np.zeros(self.MAXN, dtype=int)
 
-    def dsBuild(self, length: int):
-        self.length = length
-
-        for i in range(length):
+    def dsBuild(self):
+        for i in range(self.MAXN):
             self.ds[i] = i
             self.size[i] = 1
     
