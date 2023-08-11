@@ -114,7 +114,7 @@ def main():
                                   nodeDashboard.msgTPC7LKAresult, nodeDashboard.msgTPC3ImgYOLO)
 
             except Exception as ex:
-                #print("Exception: {}".format(ex))
+                print("Exception: {}".format(ex))
                 pass
 
             except KeyboardInterrupt:

@@ -44,8 +44,6 @@ class NodeLanewarp():
         
         global flagImageReceived    
         flagImageReceived = True        #Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
-        #cv2.imshow('zed', self.msgTPC1Camera)
-        #cv2.waitKey(1)
     
 
 #classe para processo de Lane Warp
@@ -63,9 +61,6 @@ class LaneWarp():
         self.bufferA  = []
         self.logVP    = []
         self.logA     = []
-        self.biasA    = 0
-        self.biasAR   = False
-        self.biasAL   = False
         self.current_state = np.array([0])
         self.current_covariance = np.array([1])
         self.kf = KalmanFilter(transition_matrices=[1],
@@ -89,14 +84,21 @@ class LaneWarp():
         dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
 
         img = imagem
-        cv2.circle(img, (0, height), 10, (0, 0, 255), 5)
-        cv2.circle(img, (width, height), 10, (0, 0, 255), 5)
-        cv2.circle(img, (235, 530), 10, (0, 0, 255), 5)
-        cv2.circle(img, ((width-210), 530), 10, (0, 0, 255), 5)
+        cv2.circle(img, (0, height), 10, (255, 0, 0), 5)
+        cv2.circle(img, (width, height), 10, (255, 255, 0), 5)
+        #cv2.circle(img, (200, 530), 10, (255, 0, 255), 5)
+        #cv2.circle(img, ((width-200), 530), 10, (255, 255, 255), 5)
+        cv2.circle(img, (235, 530), 10, (255, 0, 255), 5)
+        cv2.circle(img, ((width-210), 530), 10, (255, 255, 255), 5)
+        #cv2.imshow("Warp Dots", img)
 
         M = cv2.getPerspectiveTransform(src, dst)               #[estudar]
         M_inv = cv2.getPerspectiveTransform(dst, src)           #[estudar]
         warp = cv2.warpPerspective(imagem, M, img_size)         #[estudar]
+        #warp_inv = cv2.warpPerspective(img, M_inv, img_size)
+        #print(warp.shape)
+        #cv2.imshow("Warp", warp)
+        #cv2.waitKey(1)
 
         return warp, M_inv
     
@@ -109,7 +111,7 @@ class LaneWarp():
 
         #(T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         #(T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
-        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #indoor
+        (T, thresh) = cv2.threshold(blurred, 116, 255, cv2.THRESH_BINARY_INV) #indoor
         #(T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
 
         kernel = np.ones((7, 7), np.uint8)
@@ -193,47 +195,27 @@ class LaneWarp():
 
         return leftx, lefty, rightx, righty
         
-    def lineValidate(self, linex, liney, linebufferx, linebuffery, dir):
-        if(len(linex)<=10000 or len(liney)<=10000):
-            print('Buffer lines')
+    def lineValidate(self, linex, liney, linebufferx, linebuffery):
+        if(len(linex)==0 or len(liney)==0):
+            print('No lines')
             linex = linebufferx
             liney = linebuffery 
-            if(dir == 'R'):
-                self.biasAR = True
-            else:
-                self.biasAL = True
         else:
             linebufferx = linex
             linebuffery = liney
-            if(dir == 'R'):
-                self.biasAR = False
-            else:
-                self.biasAL = False
 
         return linex, liney, linebufferx, linebuffery
     
     def fit_poly(self, binary_warped, leftx, lefty, rightx, righty):
         ### Fit a second order polynomial to each with np.polyfit() ###
-        leftx, lefty, self.bufferLX, self.bufferLY = self.lineValidate(leftx, lefty, self.bufferLX, self.bufferLY, 'L')
-        rightx, righty, self.bufferRX, self.bufferRY = self.lineValidate(rightx, righty, self.bufferRX, self.bufferRY, 'R')
-        
-        if self.biasAR:
-            self.biasA = 10
-        elif self.biasAL:
-            self.biasA = -10
-        else:
-            self.biasA = 0
-
-        #print("rightx: {} | righty: {}".format(len(rightx), len(righty)))
-        #print("leftx: {} | lefty: {}".format(len(leftx), len(lefty)))
-        
-        laneValid = np.zeros(binary_warped.shape[:2], np.uint8)
-        laneValid[lefty, leftx] = 255
-        laneValid[righty, rightx] = 255
+        leftx, lefty, self.bufferLX, self.bufferLY = self.lineValidate(leftx, lefty, self.bufferLX, self.bufferLY)
+        rightx, righty, self.bufferRX, self.bufferRY = self.lineValidate(rightx, righty, self.bufferRX, self.bufferRY)
 
         left_fit = np.polyfit(lefty, leftx, 2)
         right_fit = np.polyfit(righty, rightx, 2)
 
+        imgLV = np.zeros_like(binary_warped).astype(np.uint8)
+        imgLV = cv2.bitwise_and(imgLV)
         # Generate x and y values for plotting
         ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
         try:
@@ -247,9 +229,7 @@ class LaneWarp():
             left_fitx = 1 * ploty ** 2 + 1 * ploty
             right_fitx = 1 * ploty ** 2 + 1 * ploty
 
-
-        return left_fit, right_fit, left_fitx, right_fitx, ploty, laneValid
-        
+        return left_fit, right_fit, left_fitx, right_fitx, ploty
     
     def navegation_area_validate(self, navegation):
         contours, _ = cv2.findContours(navegation, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -319,7 +299,7 @@ class LaneWarp():
   
         return veh_pos, center_lane_positions, y_positions
 
-    def getBuffer(self, buffer, newValue, tolerance, method):
+    def getBuffer(self, buffer, newValue, tolerance, method, lenBuffer):
         retorno = False
         if(len(buffer) == 0):
             buffer.append(newValue)
@@ -328,7 +308,7 @@ class LaneWarp():
             buffer.append(newValue)
         
             #print("BUFFER: {}".format(buffer))
-            while len(buffer) >= 5:
+            while len(buffer) >= lenBuffer:
                 buffer.pop(0)
 
         if(method=='mean'):
@@ -366,13 +346,12 @@ class LaneWarp():
                     (255, 0, 0), 2, cv2.LINE_AA)
         cv2.putText(out_img, 'Steering: ' + str(angDir)[:7], (40, 150), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6,
                     (255, 0, 0), 2, cv2.LINE_AA)
-        
 
         return out_img, newwarpbin
         
     
     def angValidate(self, angDir):
-        angDir = int(angDir) + self.biasA
+        angDir = int(angDir)
         if(angDir < self.angMin):
             angDir = self.angMin 
         elif(angDir > self.angMax):
@@ -435,24 +414,27 @@ class LaneWarp():
 
         # Resgatando e validando pontos da linha esquerda e direita
         leftx, lefty, rightx, righty = self.find_lane_pixels_using_histogram(img_bin)
-        left_fit, right_fit, left_fitx, right_fitx, ploty, laneValid = self.fit_poly(img_bin, leftx, lefty, rightx, righty)
+        left_fit, right_fit, left_fitx, right_fitx, ploty = self.fit_poly(img_bin, leftx, lefty, rightx, righty)
         left_curverad, right_curverad = self.measure_curvature_meters(img_bin, left_fitx, right_fitx, ploty)
 
         veh_pos, center, center_y = self.measure_position_meters(img_bin, left_fit, right_fit)
-        self.bufferVP, veh_pos = self.getBuffer(self.bufferVP, veh_pos, 0.1, 'last')
-        
-        angDir = self.cinematicaPurePursuit(veh_pos)
-        self.current_state, self.current_covariance = self.kf.filter_update(self.current_state, self.current_covariance, angDir)
+        #self.bufferVP, veh_pos = self.getBuffer(self.bufferVP, veh_pos, 0.04, 'last', 1)
+        self.current_state, self.current_covariance = self.kf.filter_update(self.current_state, self.current_covariance, veh_pos)
+        veh_pos = self.current_state[0]
 
-        angDir = self.current_state[0]
+        angDir = self.cinematicaPurePursuit(veh_pos)
+        #self.bufferA, angDir = self.getBuffer(self.bufferA, angDir, 5, 'mean', 5)
+        #self.current_state, self.current_covariance = self.kf.filter_update(self.current_state, self.current_covariance, angDir)
+
+        #angDir = self.current_state[0]
 
         angDir = self.angValidate(angDir)
-        out_img, navegation = self.project_lane_info(imagem[:, :, 0:3], laneValid, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir)
+        out_img, navegation = self.project_lane_info(imagem[:, :, 0:3], img_bin, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir)
         
-        #navegation = self.navegation_area_validate(navegation)
+        navegation = self.navegation_area_validate(navegation)
 
         for i in range(len(center)):
-            cv2.circle(laneValid, (int(center[i][0]), int(center[i][1])), 10, (255, 255, 255), 5)
+            cv2.circle(img_bin, (int(center[i][0]), int(center[i][1])), 10, (255, 255, 255), 5)
 
             #cv2.imshow('Bird Eye View Binarizada', img_bin)
 
@@ -471,7 +453,7 @@ class LaneWarp():
         NodeRos.msgLKAnave = NodeRos.bridge.cv2_to_imgmsg(navegation,"8UC1")
         NodeRos.pubLKAnave.publish(NodeRos.msgLKAnave)
 
-        NodeRos.msgLKAroi = NodeRos.bridge.cv2_to_imgmsg(laneValid,"8UC1")
+        NodeRos.msgLKAroi = NodeRos.bridge.cv2_to_imgmsg(img_bin,"8UC1")
         NodeRos.pubLKAroi.publish(NodeRos.msgLKAroi)
 
         NodeRos.msgLKAresult = NodeRos.bridge.cv2_to_imgmsg(out_img,"8UC3")
