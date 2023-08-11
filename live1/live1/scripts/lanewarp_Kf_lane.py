@@ -119,7 +119,7 @@ class LaneWarp():
 
         # (T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         # (T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
-        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV)  # indoor
+        (T, thresh) = cv2.threshold(blurred, 122, 255, cv2.THRESH_BINARY_INV)  # indoor
         # (T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
 
         kernel = np.ones((7, 7), np.uint8)
@@ -219,6 +219,7 @@ class LaneWarp():
             flagBR = True
         
         if(not flagBR or not flagBL):
+            '''
             print('flagBL {}'.format(flagBL))
             print('flagBR {}'.format(flagBR))
             maxXLi = np.argmax(left[0])
@@ -228,12 +229,13 @@ class LaneWarp():
             print(dist)
             print('len(left[0]) {}'.format(len(left[0])))
             print('len(right[0]) {}'.format(len(right[0])))
-            if (len(left[0]) <= minLen or dist < minDist or flagBL):
+            '''
+            if (len(left[0]) <= minLen):#or dist < minDist or flagBL):
                 left = leftBuffer
             else:
                 leftBuffer = left
 
-            if (len(right[0]) <= minLen  or dist < minDist or flagBR):
+            if (len(right[0]) <= minLen):#  or dist < minDist or flagBR):
                 right = rightBuffer
             else:
                 rightBuffer = right
@@ -340,7 +342,7 @@ class LaneWarp():
     '''
     def evaluate_trajectory_quality(self, center_lane_positions, left_lane_positions=None, right_lane_positions=None, previous_center_lane_positions=None):
     
-        MIN_DISTANCE = 50
+        MIN_DISTANCE = 100
         print(center_lane_positions)
         
         #for i in range(len(center_lane_positions)):
@@ -472,7 +474,7 @@ class LaneWarp():
         return int(transformed_point[0][0][0]), int(transformed_point[0][0][1])
 
     def cinematicaPurePursuit(self, distance_to_center):
-        offSet = 0.9  # 1.05#1.2
+        offSet = 1.1 #0.9  #1.05
         wheelbase = 0.75
         target_point = [offSet, distance_to_center]
 
