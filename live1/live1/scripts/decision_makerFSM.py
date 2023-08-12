@@ -7,7 +7,6 @@
 
 import rospy
 import time
-import vector as vc
 import numpy as np
 from threading import Thread
 from std_msgs.msg import Float64, Float64MultiArray, String
@@ -37,6 +36,8 @@ class NodeDecisionMaker:
         self.msg_curve_radius = Float64MultiArray()
         self.msg_object_yolo = String()
         self.msg_qr_code = Float64()
+        self.__can_message = str()
+        self.__flag_receive_can_msg = False
 
         self.sub_depth = rospy.Subscriber('TPC3Depth', Float64, self.callback_depth)
         self.sub_vehicle_position = rospy.Subscriber('TPC4VehiclePosition', Float64, self.callback_vehicle_position)
@@ -44,6 +45,9 @@ class NodeDecisionMaker:
         self.sub_curve_radius = rospy.Subscriber('TPC5CurveRadius', Float64MultiArray, self.callback_curve_radius)
         self.sub_object_yolo = rospy.Subscriber('TPC3ObjectYOLO', String, self.callback_object_yolo)
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
+        self.sub_can_message = rospy.Subscriber('TPC9Bridge', String, self.callback_logger)
+
+        self.pubData = rospy.Publisher('TPC10Decision_Maker', Float64MultiArray , queue_size=1)
 
     def callback_depth(self, msg_depth):
         global flag_distance_received
@@ -76,6 +80,23 @@ class NodeDecisionMaker:
         self.yolo_decision(json_object_yolo)
 
         self.msg_object_yolo = json_object_yolo
+
+    def callback_logger(self, can_message):
+        self.__flag_receive_can_msg = True
+        self.__can_message = str(can_message)
+    
+    def getCANMessage(self):
+        return self.__can_message
+
+    def getFlagLogger(self) -> bool:
+        return self.__flag_receive_can_msg
+
+    def setFlagLogger(self, value: bool):
+        self.__flag_receive_can_msg = value
+
+    def pubOrinToInfra(self, orin_message: list):
+        self.__orin_message = orin_message 
+        self.pubData.publish(Float64MultiArray(self.__orin_message))
 
     def yolo_decision(self, json_object_yolo):
         global flag_break_yolo
@@ -147,7 +168,6 @@ class DecisionMakerFSM:
         # Inicializa o temporizador de envio de msg na CAN
         self.t_send_msg_can = time.time()
         self.time_min = 0.001  # Intervalo de tempo para envio de msg na CAN
-        self.socket = vc.openSocket()  # Inicializa o socket de comunicação com a CAN
         self.emergency_break_start = 0
         self.wait_time = 1 #em segundos
 
@@ -166,13 +186,13 @@ class DecisionMakerFSM:
                 flag_vehicle_can_init = True
                 try:
                     msg_can_id = 0x56
-                    param = [1, self.rpm_can, 1, self.rpm_can]
-                    vc.sendMsg(self.socket, msg_can_id, param)
+                    param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
+                    node_decision_maker.pubOrinToInfra(param)
                     print("Mensagem para ECU POWERTRAIN: ", msg_can_id, param)
 
                     msg_can_id = 0x82
-                    param = [self.angle_can]
-                    vc.sendMsg(self.socket, msg_can_id, param)
+                    param = [self.angle_can, msg_can_id]
+                    node_decision_maker.pubOrinToInfra(param)
                     print("Mensagem para ECU DIREÇÃO: ", msg_can_id, param)
 
                 except Exception as ex:
@@ -185,18 +205,18 @@ class DecisionMakerFSM:
                 ang_dir = node_decision_maker.msg_steering
 
                 msg_can_id = 0x82
-                param = [ang_dir]
-                vc.sendMsg(self.socket, msg_can_id, param)
+                param = [ang_dir, msg_can_id]
+                node_decision_maker.pubOrinToInfra(param)
 
                 msg_can_id = 0x56
-                param = [1, self.rpm_can, 1, self.rpm_can]
-                vc.sendMsg(self.socket, msg_can_id, param)
+                param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
+                node_decision_maker.pubOrinToInfra(param)
 
         elif self.state == 2:
             print("Estado: {}. Emergência!".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
-                vc.sendMsg(self.socket, can_id, can_params)             
+                node_decision_maker.pubOrinToInfra(param)          
 
 
 def main():
@@ -225,14 +245,14 @@ def main():
 
             rpm = 0
             msg_can_id = 0x56
-            param = [1, rpm, 1, rpm]
+            param = [1, rpm, 1, rpm, msg_can_id]
             print("FREIA PID - KeyboardInterrupt")
-            vc.sendMsg(s, msg_can_id, param)
+            node_decision_maker.pubOrinToInfra(param)
 
             ang_dir = 25
             msg_can_id = 0x82
-            param = [ang_dir]
-            vc.sendMsg(s, msg_can_id, param)
+            param = [ang_dir, msg_can_id]
+            node_decision_maker.pubOrinToInfra(param)
 
             s.close()
             break
