@@ -1,3 +1,5 @@
+# Union Find by Felipe Santos
+
 import numpy as np
 
 class Car:
