@@ -59,7 +59,7 @@ def main():
             #envio [ORIN -> CAN]
             if(object_vector.getFlagReceiveMessage()):
                 curr_data = object_vector.getDataFromOrin()
-                vc.sendMsg(object_vector.socket, curr_data[:len(curr_data)-1], curr_data[len(curr_data)-1])
+                vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
                 object_vector.setFlagReceiveMessage(False)
 
         except Exception as e: 
