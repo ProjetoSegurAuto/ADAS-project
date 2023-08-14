@@ -95,7 +95,7 @@ class NodeDecisionMaker:
         self.__flag_receive_can_msg = value
 
     def pubOrinToInfra(self, orin_message: list):
-        print("ALO 3")
+        print("pubOrinToInfra")
         self.__orin_message = Int64MultiArray()
         self.__orin_message.data = orin_message 
         self.pubData.publish(self.__orin_message)
@@ -218,6 +218,8 @@ class DecisionMakerFSM:
             print("Estado: {}. Emergência!".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
+                param = can_params 
+                param.append(can_id)
                 node_decision_maker.pubOrinToInfra(param)          
 
 
