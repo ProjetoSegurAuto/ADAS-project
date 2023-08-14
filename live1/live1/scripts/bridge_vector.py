@@ -24,7 +24,7 @@ class Bridge():
         self.pubCAN.publish(String(self.__can_message))
 
     def callBackDataFromOrin(self, orin_message):
-        print("ALO 4")
+        print("callBackDataFromOrin")
         self.__flagReceive = True
         self.__orin_message = orin_message
 
@@ -48,20 +48,13 @@ def main():
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
-            print("ALO 1")
             #recebimento [CAN -> ORIN]       
-            # data_logger = vc.logCAN(object_vector.socket)
-            # if(data_logger != None and data_logger != ""):
-            #     object_vector.pubCANMessage(data_logger)
-                
-            # curr_data = object_vector.getDataFromOrin()
-            # print(curr_data)
-            # if(len(curr_data)):
-            #     #vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
-            #     object_vector.setFlagReceiveMessage(False)
+            data_logger = vc.logCAN(object_vector.socket)
+            if(data_logger != None and data_logger != ""):
+                object_vector.pubCANMessage(data_logger)
+
             #envio [ORIN -> CAN]
             if(object_vector.getFlagReceiveMessage()):
-                print("ALO 2")
                 curr_data = object_vector.getDataFromOrin()
                 print(curr_data)
                 vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
