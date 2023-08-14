@@ -9,7 +9,7 @@ import rospy
 import time
 import numpy as np
 from threading import Thread
-from std_msgs.msg import Float64, Float64MultiArray, String
+from std_msgs.msg import Float64, Float64MultiArray, Int64MultiArray, String
 import ast
 import gc
 
@@ -47,7 +47,7 @@ class NodeDecisionMaker:
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
         self.sub_can_message = rospy.Subscriber('TPC9Bridge', String, self.callback_logger)
 
-        self.pubData = rospy.Publisher('TPC10Decision_Maker', Float64MultiArray , queue_size=1)
+        self.pubData = rospy.Publisher('TPC10Decision_Maker', Int64MultiArray , queue_size=1)
 
     def callback_depth(self, msg_depth):
         global flag_distance_received
@@ -95,8 +95,10 @@ class NodeDecisionMaker:
         self.__flag_receive_can_msg = value
 
     def pubOrinToInfra(self, orin_message: list):
-        self.__orin_message = orin_message 
-        self.pubData.publish(Float64MultiArray(self.__orin_message))
+        print("ALO 3")
+        self.__orin_message = Int64MultiArray()
+        self.__orin_message.data = orin_message 
+        self.pubData.publish(self.__orin_message)
 
     def yolo_decision(self, json_object_yolo):
         global flag_break_yolo
@@ -227,7 +229,7 @@ def main():
 
     decision_maker_fsm = DecisionMakerFSM(node_decision_maker)
 
-    s = decision_maker_fsm.socket
+    #s = decision_maker_fsm.socket
 
     while not rospy.is_shutdown():
         try:
@@ -254,7 +256,7 @@ def main():
             param = [ang_dir, msg_can_id]
             node_decision_maker.pubOrinToInfra(param)
 
-            s.close()
+            #s.close()
             break
 
 
