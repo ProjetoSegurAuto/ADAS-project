@@ -1,26 +1,22 @@
-'''
-    Nó ROS que realiza a ponte entre a Orin e a Vector.
-    Este nó surge da necessidade de outros nós, além do deciosion maker, ter acesso a comunicação intra-veicular
+#!/usr/bin/env python3
 
-Autor: Felipe Santos
-
-* Observações
-i) O dado enviados pela Orin é igual ao projeto original, entretanto deve ser alocado mais um espaço e o último elemento representa o ID da msg
-
-'''
+##########
+#Informações sobre esse Node:
+#Nome: vector
+#Descrição: Nó ROS que realiza a ponte entre a Orin e a Vector. Este nó surge da necessidade de outros nós, além do deciosion maker, ter acesso a comunicação intra-veicular. i) O dado enviados pela Orin é igual ao projeto original, entretanto deve ser alocado mais um espaço e o último elemento representa o ID da msg
 
 import rospy
 import vector as vc
-from std_msgs.msg import String, Float64MultiArray
+from std_msgs.msg import String, Int64MultiArray
 
 class Bridge():
     def __init__(self):
         self.__can_message = String()
-        self.__orin_message = Float64MultiArray()
+        self.__orin_message = Int64MultiArray()
         self.__flagReceive = False
         self.socket = vc.openSocket()  
 
-        self.subDataFromOrin = rospy.Subscriber('TPC10Decision_Maker', Float64MultiArray, self.callBackDataFromOrin)
+        self.subDataFromOrin = rospy.Subscriber('TPC10Decision_Maker', Int64MultiArray, self.callBackDataFromOrin)
         self.pubCAN = rospy.Publisher('TPC9Bridge', String , queue_size=1)
         
     def pubCANMessage(self, can_message):
@@ -28,11 +24,12 @@ class Bridge():
         self.pubCAN.publish(String(self.__can_message))
 
     def callBackDataFromOrin(self, orin_message):
+        print("ALO 4")
         self.__flagReceive = True
         self.__orin_message = orin_message
 
     def getDataFromOrin(self) -> list:
-        return list(self.__orin_message)
+        return list(self.__orin_message.data)
     
     def getFlagReceiveMessage(self) -> bool:
         return self.__flagReceive
@@ -51,14 +48,22 @@ def main():
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
+            print("ALO 1")
             #recebimento [CAN -> ORIN]       
-            data_logger = vc.logCAN(object_vector.socket)
-            if(data_logger != None and data_logger != ""):
-                object_vector.pubCANMessage(data_logger)
+            # data_logger = vc.logCAN(object_vector.socket)
+            # if(data_logger != None and data_logger != ""):
+            #     object_vector.pubCANMessage(data_logger)
                 
+            # curr_data = object_vector.getDataFromOrin()
+            # print(curr_data)
+            # if(len(curr_data)):
+            #     #vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
+            #     object_vector.setFlagReceiveMessage(False)
             #envio [ORIN -> CAN]
             if(object_vector.getFlagReceiveMessage()):
+                print("ALO 2")
                 curr_data = object_vector.getDataFromOrin()
+                print(curr_data)
                 vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
                 object_vector.setFlagReceiveMessage(False)
 
