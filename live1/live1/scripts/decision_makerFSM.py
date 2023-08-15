@@ -9,7 +9,7 @@ import rospy
 import time
 import numpy as np
 from threading import Thread
-from std_msgs.msg import Float64, Float64MultiArray, Int64MultiArray, String
+from std_msgs.msg import Float64, Float64MultiArray, Int64MultiArray, String, Int32
 import ast
 import gc
 
@@ -27,6 +27,7 @@ flag_break_yolo = False
 can_id = 0x00
 can_params = []
 
+MY_ID = 0
 
 class NodeDecisionMaker:
     def __init__(self):
@@ -38,6 +39,7 @@ class NodeDecisionMaker:
         self.msg_qr_code = Float64()
         self.__can_message = str()
         self.__flag_receive_can_msg = False
+        self.__myLeader = MY_ID
 
         self.sub_depth = rospy.Subscriber('TPC3Depth', Float64, self.callback_depth)
         self.sub_vehicle_position = rospy.Subscriber('TPC4VehiclePosition', Float64, self.callback_vehicle_position)
@@ -46,6 +48,7 @@ class NodeDecisionMaker:
         self.sub_object_yolo = rospy.Subscriber('TPC3ObjectYOLO', String, self.callback_object_yolo)
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
         self.sub_can_message = rospy.Subscriber('TPC9Bridge', String, self.callback_logger)
+        self.subModeling = rospy.Subscriber('TPC9Leader', Int32, self.callbackMyLeader)
 
         self.pubData = rospy.Publisher('TPC10Decision_Maker', Int64MultiArray , queue_size=1)
 
@@ -93,6 +96,12 @@ class NodeDecisionMaker:
 
     def setFlagLogger(self, value: bool):
         self.__flag_receive_can_msg = value
+
+    def callbackMyLeader(self, msg_leader):
+        self.__myLeader = int(msg_leader.data)
+
+    def getWhatIsMyLeader(self):
+        return self.__myLeader
 
     def pubOrinToInfra(self, orin_message: list):
         print("pubOrinToInfra")
@@ -235,10 +244,13 @@ def main():
 
     while not rospy.is_shutdown():
         try:
-            decision_maker_fsm.update_state(node_decision_maker)
-            decision_maker_fsm.actions(node_decision_maker)
+            if(MY_ID == node_decision_maker.getWhatIsMyLeader()):
+                decision_maker_fsm.update_state(node_decision_maker)
+                decision_maker_fsm.actions(node_decision_maker)
 
-            #print(vc.logCAN(s))
+                #print(vc.logCAN(s))
+            else:
+                print("eu sou subordinado hahaha")
             gc.collect()
 
         except Exception as ex:
