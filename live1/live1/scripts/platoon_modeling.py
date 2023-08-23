@@ -46,6 +46,13 @@ def main():
     dsu_ = dsu.DSU()
     dsu_.dsBuild()
 
+    # PARA TESTE !
+    car_u = dsu.Car(MY_ID, 10, 0) 
+    car_v = dsu.Car(1, 1, 0)
+    dsu_.dsUnion(car_u, car_v)
+    # TESTE !
+
+
     #Dados do logger
     last_node = -1
     last_pos = -1
