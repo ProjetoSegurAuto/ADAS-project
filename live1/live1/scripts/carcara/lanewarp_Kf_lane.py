@@ -15,7 +15,6 @@ from std_msgs.msg import Float64MultiArray  # tipo de mensagem que sera enviado
 from cv_bridge import CvBridge, CvBridgeError
 import math
 import vector as vc
-from pykalman import KalmanFilter
 
 # variável global para garantir que o tratamento da imagem so ira começar se tiver recebido imagem
 flagImageReceived = False
