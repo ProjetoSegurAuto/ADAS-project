@@ -82,14 +82,14 @@ def logCAN(s):
     elif msgECU[2] == 0x93:
         log['SOFTWARE'] = 'GROJOBA'
         #log['Reservado'] = msgECU[4]
-        log['ID'] = msgECU[5]
-        log['Role'] = msgECU[6]
-        log['gap'] = msgECU[7]
-        log['Destino'] = msgECU[8]
-        log['Localização'] = msgECU[9]
-        log['Direção'] = msgECU[10]
-        log['rpmEsq'] = msgECU[11]
-        log['rpmDir'] = msgECU[12]
+        log['ID'] = msgECU[6]
+        log['Role'] = msgECU[7]
+        log['gap'] = msgECU[8]
+        log['Destino'] = msgECU[9]
+        log['Localização'] = msgECU[10]
+        log['Direção'] = msgECU[11]
+        log['rpmEsq'] = msgECU[12]
+        log['rpmDir'] = msgECU[13]
 
     elif ((msgECU[3] << 8) + msgECU[2]) == 0x701:
         log['ECU'] = 'Radar'
