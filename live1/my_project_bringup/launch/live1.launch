@@ -8,8 +8,7 @@
     <node name="modeling" pkg="live1" type="platoon_modeling.py" output="screen"/> 
     <node name="decision_maker" pkg="live1" type="decision_makerV2.py" output="screen"/>
 
-
-    
+    <!--
     <node name="yolo" pkg="live1" type="yolo.py" output="screen"/> 
     <node name="qr_code" pkg="live1" type="qrcode.py" output="screen"/> 
     <node name="yolo" pkg="live1" type="yolo.py" output="screen"/> 
@@ -17,9 +16,7 @@
 
     <node name="decision_maker" pkg="live1" type="decision_maker.py" output="screen"/> 
 
-    <node name="plates" pkg="live1" type="placas.py" output="screen"/>
-
-    
+    <node name="plates" pkg="live1" type="placas.py" output="screen"/>  
     -->
 
 </launch>
