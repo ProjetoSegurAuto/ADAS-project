@@ -258,7 +258,7 @@ def main():
 
             else:
                 #impreme os dados lidos da CAN na mensagem inter-veicular. A ECU só passa mensagem interveicular
-                print(decision_maker_fsm.getCANMessage())
+                print(node_decision_maker.getCANMessage())
             gc.collect()
 
         except Exception as ex:

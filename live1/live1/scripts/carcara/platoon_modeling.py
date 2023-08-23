@@ -47,7 +47,7 @@ def main():
     dsu_.dsBuild()
 
     # PARA TESTE !
-    car_u = dsu.Car(MY_ID, 10, 0) 
+    car_u = dsu.Car(0, 10, 0) 
     car_v = dsu.Car(1, 1, 0)
     dsu_.dsUnion(car_u, car_v)
     # TESTE !
