@@ -224,13 +224,23 @@ class DecisionMakerFSM:
                 param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
                 node_decision_maker.pubOrinToInfra(param)
 
+                destiny = 13
+                localization = 7
+                param = [MY_ID, GAP, destiny, localization, ang_dir, self.rpm_can, self.rpm_can, 0x94]
+                node_decision_maker.pubOrinToInfra(param)
+
         elif self.state == 2:
             print("Estado: {}. Emergência!".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
                 param = can_params 
                 param.append(can_id)
-                node_decision_maker.pubOrinToInfra(param)          
+                node_decision_maker.pubOrinToInfra(param)
+
+                destiny = 13
+                localization = 7
+                param = [MY_ID, GAP, destiny, localization, node_decision_maker.msg_steering, 0, 0, 0x94]
+                node_decision_maker.pubOrinToInfra(param)       
 
 
 def main():
@@ -248,14 +258,6 @@ def main():
             if(MY_ID == node_decision_maker.getWhatIsMyLeader()):
                 decision_maker_fsm.update_state(node_decision_maker)
                 decision_maker_fsm.actions(node_decision_maker)
-
-                destiny = 0
-                localization = 0
-                
-                param = [MY_ID, GAP, destiny, localization, decision_maker_fsm.angle_can, decision_maker_fsm.rpm_can, decision_maker_fsm.rpm_can, 0x94]
-
-                node_decision_maker.pubOrinToInfra(param)
-
             else:
                 #impreme os dados lidos da CAN na mensagem inter-veicular. A ECU só passa mensagem interveicular
                 print(node_decision_maker.getCANMessage())
