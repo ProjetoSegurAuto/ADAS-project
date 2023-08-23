@@ -28,6 +28,7 @@ can_id = 0x00
 can_params = []
 
 MY_ID = 0
+GAP = 10
 
 class NodeDecisionMaker:
     def __init__(self):
@@ -248,9 +249,16 @@ def main():
                 decision_maker_fsm.update_state(node_decision_maker)
                 decision_maker_fsm.actions(node_decision_maker)
 
-                #print(vc.logCAN(s))
+                destiny = 0
+                localization = 0
+                
+                param = [MY_ID, GAP, destiny, localization, decision_maker_fsm.angle_can, decision_maker_fsm.rpm_can, decision_maker_fsm.rpm_can, 0x94]
+
+                node_decision_maker.pubOrinToInfra(param)
+
             else:
-                print("eu sou subordinado hahaha")
+                #impreme os dados lidos da CAN na mensagem inter-veicular. A ECU só passa mensagem interveicular
+                print(decision_maker_fsm.getCANMessage())
             gc.collect()
 
         except Exception as ex:
