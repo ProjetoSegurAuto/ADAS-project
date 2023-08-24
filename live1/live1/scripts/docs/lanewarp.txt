@@ -1,0 +1,32 @@
+Class LaneWarp
+Def Init:
+
+This content explains the variables and parameters needed for transforming a camera image into a bird's eye view. Variables include angMin, angMax, bufferLX, bufferLY, bufferNA, bufferRX, bufferRY, bufferVP, bufferA, logVP, logA, biasA, biasAR, biasAL, center_lane_positions, gja_center_lane_positions, bufferRight, and bufferLeft.
+
+Def Warp:
+
+This code determines the size of an image, creates src and dst points, and uses cv2.getPerspectiveTransform and cv2.warpPerspective to transform the image and return it, with the inverse of the transformation also returned. Circles are drawn around the points for visualization.
+
+Def Binary Thresholder:
+
+This code converts an image to YUV color space, blurs it with GaussianBlur, and applies thresholding to it. It then uses a kernel to dilate and erode the image, before returning the result as a mask.
+
+Def Find Lane Pixels Using Histogram:
+
+A histogram of the lower half of the image is taken, and the peak for the left and right halves are found. The number of sliding windows, and their width and height, are chosen. Nonzero pixels are identified, and the left and right lane indices are found and concatenated. The pixel positions of the left and right lines are then extracted.
+
+Def Line Validate:
+
+This content describes a method to measure the position of a car relative to a lane, in terms of meters. It uses left and right lane positions along with a moving average to update the position. The trajectory of the lane is evaluated for its quality and the curvature of the lanes is measured in meters.
+
+Def Fit Poly:
+
+This program calculates lane information and steering angle for a given image. It creates an image to draw the lines on, combines the result with the original image, and uses inverse perspective matrix to warp the blank image back. It also validates the steering angle to make sure it does not exceed the maximum value. Finally, it is able to transform a given point using perspective transformation.
+
+Def Cinematica Pure Pursuit:
+
+This code calculates wheel_angle_mapped which is mapped to an interval of [1, 50], and normalized_distance which is mapped to an interval of [1, 50] using the given parameters offSet, wheelbase, target_point, alpha, and distance_to_center. The wheel_angle_mapped is then validated using the angValidate function.
+
+Def Show Log:
+
+NodeLanewarp calculates the average radius of a curve and detects the direction the car will turn. It measures the curvature in meters, the car's position, and provides navigation information. This is done by projecting lane information onto an inverse perspective transform, and publishing the results.
