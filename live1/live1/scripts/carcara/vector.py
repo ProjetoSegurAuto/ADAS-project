@@ -3,16 +3,6 @@ import time
 
 log = {}
 
-def logCANModeling():
-    #msgECU = s.recv(14)
-    #print(msgECU)
-    
-    ans = ""
-    
-    if 'ID visitante' in log:
-        ans = [log['ID visitante'], log['Posicao'], log['Action']]
-    return ans
-
 def logCAN(s):
     msgECU = s.recv(14)
     
@@ -100,7 +90,6 @@ def logCAN(s):
 
     elif msgECU[2] == 0x98:
         log['ECU'] = 'Comunicacao - Platoon Action'
-        #log['Reservado'] = msgECU[4]
         log['ID visitante'] = msgECU[11]
         log['Posicao'] = msgECU[12]
         log['Action'] = msgECU[13]
@@ -111,17 +100,18 @@ def logCAN(s):
         log['TipoMsg'] = msgECU[3]
         log['Action'] = msgECU[4] 
 
+    ans = []
     retorno = ""
     for l in log:
         retorno = retorno + "{}: {} | ".format(l, log[l])
-    #print (retorno)
-    return retorno
+        ans.append(log[l])
+    print(retorno)
+
+    return ans
     
 def sendMsg(s, msgCANId, value):
     try:    
-        #mesg= [1, 8, 0, 14, 5, 0, 0, 7, 8, 9, 10, 11, 12, 13, 14]
-
-        mesg= [0, 8, 0, msgCANId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        mesg = [0, 8, 0, msgCANId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         
         #----------------------ECU DIRECAO-------------------------------------
         if msgCANId == 0x82:     #Ajustar Angulo Direcao
@@ -227,16 +217,6 @@ def sendMsg(s, msgCANId, value):
         s.sendall(msg)
 
     except Exception as ex:
-        '''
-        if(ex.errno == 113):
-            erro = "[Errno 113] No route to host"
-        elif(ex.errno == 104):
-            erro = "[Errno 104] Connection reset by peer"
-        elif(ex.errno == 32):
-            erro = "[Errno 32] Broken pipe"
-        else:
-            erro = "{}".format(ex)
-        '''
         print("Exception: {}".format(ex))
         s.close()
         pass
@@ -248,21 +228,8 @@ def openSocket():
     s.connect((HOST, PORT))
     return s
 
-'''
-def logCanDir(msgECU):
-    retornoDir = ""
-
-    if msgECU[2] == 0x80:
-        retornoDir = msgECU[9]
-
-    return retornoDir
-
-'''
-
 def logCanDir(s):
-
     msgECU = s.recv(14)
-    
     
     if msgECU[2] == 0x80:
         log['ECU'] = 'Direcao'
@@ -291,18 +258,14 @@ def logCanDir(s):
     retornoDir = ""
     for l in log:
         retornoDir = retornoDir + "{}: {} | ".format(l, log[l])
-    #print (retorno)
     return retornoDir
-
 
 def logCanPlatoon(s):
 
     msgECU = s.recv(14)
 
     if msgECU[2] == 0x93:
-        #print (msgECU)
         log['SOFTWARE'] = 'GROJOBA'
-        #log['Reservado'] = msgECU[4]
         log['ID'] = msgECU[6]
         log['Role'] = msgECU[7]
         log['gap'] = msgECU[8]
