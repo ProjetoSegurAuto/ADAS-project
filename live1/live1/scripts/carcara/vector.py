@@ -59,7 +59,6 @@ def logCAN(s):
 
     elif msgECU[2] == 0x90:
         log['ECU'] = 'Comunicacao'
-        #log['Reservado'] = msgECU[4]
         log['ID'] = msgECU[5]
         log['Role'] = msgECU[6]
         log['gap'] = msgECU[7]
@@ -71,7 +70,6 @@ def logCAN(s):
 
     elif msgECU[2] == 0x93:
         log['SOFTWARE'] = 'GROJOBA'
-        #log['Reservado'] = msgECU[4]
         log['ID'] = msgECU[6]
         log['Role'] = msgECU[7]
         log['gap'] = msgECU[8]
