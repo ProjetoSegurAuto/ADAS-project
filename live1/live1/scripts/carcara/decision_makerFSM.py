@@ -184,11 +184,8 @@ class DecisionMakerFSM:
         self.wait_time = 1 #em segundos
 
     def update_state(self, node_decision_maker):
-        #if self.state != 2 and (flag_break_aeb and flag_break_yolo):
-            #self.emergency_break_start = time.time() 
         self.state = self.state_transitions[self.state]()
         self.actions(node_decision_maker)
-            #time.sleep(0.02)
 
     def actions(self, node_decision_maker):
         global flag_vehicle_can_init
@@ -251,8 +248,6 @@ def main():
 
     decision_maker_fsm = DecisionMakerFSM(node_decision_maker)
 
-    #s = decision_maker_fsm.socket
-
     while not rospy.is_shutdown():
         try:
             if(MY_ID == node_decision_maker.getWhatIsMyLeader()): #Se o carro é lider
@@ -299,7 +294,6 @@ def main():
             param = [ang_dir, msg_can_id]
             node_decision_maker.pubOrinToInfra(param)
 
-            #s.close()
             break
 
 
