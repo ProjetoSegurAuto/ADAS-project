@@ -255,12 +255,31 @@ def main():
 
     while not rospy.is_shutdown():
         try:
-            if(MY_ID == node_decision_maker.getWhatIsMyLeader()):
+            if(MY_ID == node_decision_maker.getWhatIsMyLeader()): #Se o carro é lider
                 decision_maker_fsm.update_state(node_decision_maker)
                 decision_maker_fsm.actions(node_decision_maker)
-            else:
-                #impreme os dados lidos da CAN na mensagem inter-veicular. A ECU só passa mensagem interveicular
-                print(node_decision_maker.getCANMessage())
+            else:# Se o carro é filho
+                #leitura de dados da CAN(dados do Pai)
+                can_msg = node_decision_maker.getCANMessage()
+                leader = int()
+                gap = float()
+                destiny = int()
+                localization = int()
+                direction = float()
+                rpm_left = int()
+                rpm_right = int()
+
+                if(can_msg[0] == "GROJOBA"):
+                    leader = can_msg[1]
+                    gap = can_msg[3]
+                    destiny = can_msg[4]
+                    localization = can_msg[5]
+                    direction = can_msg[6]
+                    rpm_left = can_msg[7]
+                    rpm_right = can_msg[8]
+                
+                #implemente nesta linha a FSM para o filho!
+
             gc.collect()
 
         except Exception as ex:
