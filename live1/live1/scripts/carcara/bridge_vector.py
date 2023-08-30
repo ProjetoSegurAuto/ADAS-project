@@ -7,21 +7,21 @@
 
 import rospy
 import vector as vc
-from std_msgs.msg import String, Int64MultiArray
+from std_msgs.msg import Int64MultiArray
 
 class Bridge():
     def __init__(self):
-        self.__can_message = String()
+        self.__can_message = Int64MultiArray()
         self.__orin_message = Int64MultiArray()
         self.__flagReceive = False
         self.socket = vc.openSocket()  
 
         self.subDataFromOrin = rospy.Subscriber('TPC10Decision_Maker', Int64MultiArray, self.callBackDataFromOrin)
-        self.pubCAN = rospy.Publisher('TPC9Bridge', String , queue_size=1)
+        self.pubCAN = rospy.Publisher('TPC9Bridge', Int64MultiArray , queue_size=1)
         
     def pubCANMessage(self, can_message):
         self.__can_message = can_message 
-        self.pubCAN.publish(String(self.__can_message))
+        self.pubCAN.publish(Int64MultiArray(self.__can_message))
 
     def callBackDataFromOrin(self, orin_message):
         print("callBackDataFromOrin")
@@ -50,7 +50,7 @@ def main():
         try:
             #recebimento [CAN -> ORIN]       
             data_logger = vc.logCAN(object_vector.socket)
-            if(data_logger != None and data_logger != ""):
+            if(data_logger != None and len(data_logger)):
                 object_vector.pubCANMessage(data_logger)
 
             #envio [ORIN -> CAN]

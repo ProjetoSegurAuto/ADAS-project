@@ -3,7 +3,7 @@ import time
 
 log = {}
 
-def logCAN(s):
+def logCAN(s) -> list:
     msgECU = s.recv(14)
     
     if msgECU[2] == 0x80:
@@ -98,7 +98,7 @@ def logCAN(s):
         log['TipoMsg'] = msgECU[3]
         log['Action'] = msgECU[4] 
 
-    ans = []
+    ans = list()
     retorno = ""
     for l in log:
         retorno = retorno + "{}: {} | ".format(l, log[l])

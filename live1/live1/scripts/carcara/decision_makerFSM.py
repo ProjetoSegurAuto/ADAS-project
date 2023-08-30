@@ -38,7 +38,7 @@ class NodeDecisionMaker:
         self.msg_curve_radius = Float64MultiArray()
         self.msg_object_yolo = String()
         self.msg_qr_code = Float64()
-        self.__can_message = str()
+        self.__can_message = list()
         self.__flag_receive_can_msg = False
         self.__myLeader = MY_ID
 
@@ -48,7 +48,7 @@ class NodeDecisionMaker:
         self.sub_curve_radius = rospy.Subscriber('TPC5CurveRadius', Float64MultiArray, self.callback_curve_radius)
         self.sub_object_yolo = rospy.Subscriber('TPC3ObjectYOLO', String, self.callback_object_yolo)
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
-        self.sub_can_message = rospy.Subscriber('TPC9Bridge', String, self.callback_logger)
+        self.sub_can_message = rospy.Subscriber('TPC9Bridge', Int64MultiArray, self.callback_logger)
         self.subModeling = rospy.Subscriber('TPC9Leader', Int32, self.callbackMyLeader)
 
         self.pubData = rospy.Publisher('TPC10Decision_Maker', Int64MultiArray , queue_size=1)
@@ -87,7 +87,7 @@ class NodeDecisionMaker:
 
     def callback_logger(self, can_message):
         self.__flag_receive_can_msg = True
-        self.__can_message = str(can_message)
+        self.__can_message = list(can_message.data)
     
     def getCANMessage(self):
         return self.__can_message

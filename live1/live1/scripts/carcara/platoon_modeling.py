@@ -6,17 +6,17 @@
 #Descrição: modela o platoon
 
 import rospy
-from std_msgs.msg import Int32, String
+from std_msgs.msg import Int32, Int64MultiArray
 import dsu
 
 class NodeModeling():
     def __init__(self):
         self.msgLeader = int()
         self.pubLeader = rospy.Publisher('TPC9Leader', Int32 ,queue_size=1)
-        self.__can_message = str()
+        self.__can_message = list()
         self.__flag_receive_can_msg = False
 
-        self.sub_can_message = rospy.Subscriber('TPC9Bridge', String, self.callback_logger)
+        self.sub_can_message = rospy.Subscriber('TPC9Bridge', Int64MultiArray, self.callback_logger)
         
     def pubMsgLeader(self, msg_leader):
         self.msgLeader = msg_leader #pegar o pai na dsu
@@ -24,7 +24,7 @@ class NodeModeling():
 
     def callback_logger(self, can_message):
         self.__flag_receive_can_msg = True
-        self.__can_message = str(can_message)
+        self.__can_message = list(can_message.data)
 
     def getCANMessage(self):
         return self.__can_message
@@ -46,11 +46,11 @@ def main():
     dsu_ = dsu.DSU()
     dsu_.dsBuild()
 
-    # PARA TESTE !
-    car_u = dsu.Car(0, 10, 0) 
-    car_v = dsu.Car(1, 1, 0)
-    dsu_.dsUnion(car_u, car_v)
-    # TESTE !
+    # # PARA TESTE !
+    # car_u = dsu.Car(0, 10, 0) 
+    # car_v = dsu.Car(1, 1, 0)
+    # dsu_.dsUnion(car_u, car_v)
+    # # TESTE !
 
 
     #Dados do logger
@@ -68,6 +68,9 @@ def main():
             if(nodeModeling.getFlagLogger()):
                 can_msg = nodeModeling.getCANMessage()
                 nodeModeling.setFlagLogger(False)
+
+                print("CAN RECEIVED: ", end='')
+                print(can_msg)
                 
                 #rever a separação da msg
                 if len(can_msg) == 3:
