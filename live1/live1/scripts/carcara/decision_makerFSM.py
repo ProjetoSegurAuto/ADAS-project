@@ -48,7 +48,7 @@ class NodeDecisionMaker:
         self.sub_curve_radius = rospy.Subscriber('TPC5CurveRadius', Float64MultiArray, self.callback_curve_radius)
         self.sub_object_yolo = rospy.Subscriber('TPC3ObjectYOLO', String, self.callback_object_yolo)
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
-        self.sub_can_message = rospy.Subscriber('TPC9Bridge', Int64MultiArray, self.callback_logger)
+        self.sub_can_message = rospy.Subscriber('TPC10Bridge', Float64MultiArray, self.callback_logger)
         self.subModeling = rospy.Subscriber('TPC9Leader', Int32, self.callbackMyLeader)
 
         self.pubData = rospy.Publisher('TPC10Decision_Maker', Int64MultiArray , queue_size=1)
@@ -264,7 +264,7 @@ def main():
                 rpm_left = int()
                 rpm_right = int()
 
-                if(can_msg[0] == "GROJOBA"):
+                if(can_msg[0] == 1):
                     leader = can_msg[1]
                     gap = can_msg[3]
                     destiny = can_msg[4]

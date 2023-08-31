@@ -11,17 +11,18 @@ from std_msgs.msg import Int64MultiArray
 
 class Bridge():
     def __init__(self):
-        self.__can_message = Int64MultiArray()
+        self.__can_message = Float64MultiArray()
         self.__orin_message = Int64MultiArray()
         self.__flagReceive = False
         self.socket = vc.openSocket()  
 
         self.subDataFromOrin = rospy.Subscriber('TPC10Decision_Maker', Int64MultiArray, self.callBackDataFromOrin)
-        self.pubCAN = rospy.Publisher('TPC9Bridge', Int64MultiArray , queue_size=1)
+        self.pubCAN = rospy.Publisher('TPC9Bridge', Float64MultiArray , queue_size=1)
+        self.pubCAN1 = rospy.Publisher('TPC10Bridge', Float64MultiArray , queue_size=1)
         
     def pubCANMessage(self, can_message):
-        self.__can_message = can_message 
-        self.pubCAN.publish(Int64MultiArray(self.__can_message))
+        self.__can_message.data = can_message 
+        self.pubCAN.publish(self.__can_message)
 
     def callBackDataFromOrin(self, orin_message):
         print("callBackDataFromOrin")

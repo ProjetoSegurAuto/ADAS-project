@@ -102,7 +102,11 @@ def logCAN(s) -> list:
     retorno = ""
     for l in log:
         retorno = retorno + "{}: {} | ".format(l, log[l])
-        ans.append(log[l])
+        if(log[l] == 'GROJOBA'):
+            ans.append(1)
+        else:
+            ans.append(float(log[l]))
+
     print(retorno)
 
     return ans

@@ -16,7 +16,7 @@ class NodeModeling():
         self.__can_message = list()
         self.__flag_receive_can_msg = False
 
-        self.sub_can_message = rospy.Subscriber('TPC9Bridge', Int64MultiArray, self.callback_logger)
+        self.sub_can_message = rospy.Subscriber('TPC9Bridge', Float64MultiArray, self.callback_logger)
         
     def pubMsgLeader(self, msg_leader):
         self.msgLeader = msg_leader #pegar o pai na dsu
