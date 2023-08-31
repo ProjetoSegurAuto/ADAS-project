@@ -1,5 +1,6 @@
 import socket
 import time
+import arithmetic_things as AT
 
 log = {}
 
@@ -102,15 +103,10 @@ def logCAN(s) -> list:
     retorno = ""
     for l in log:
         retorno = retorno + "{}: {} | ".format(l, log[l])
-        if(log[l] == 'GROJOBA'):
-            ans.append(1)
-        else:
+        if(AT.isnumber(log[l])):
             ans.append(float(log[l]))
 
     print(retorno)
-
-    if(msgECU[2] != 0x98):
-        ans = []
 
     return ans
     
