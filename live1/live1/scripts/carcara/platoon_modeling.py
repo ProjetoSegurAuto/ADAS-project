@@ -6,7 +6,7 @@
 #Descrição: modela o platoon
 
 import rospy
-from std_msgs.msg import Int32, Int64MultiArray
+from std_msgs.msg import Int32, Float64MultiArray
 import dsu
 
 class NodeModeling():

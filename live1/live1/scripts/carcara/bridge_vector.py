@@ -7,7 +7,7 @@
 
 import rospy
 import vector as vc
-from std_msgs.msg import Int64MultiArray
+from std_msgs.msg import Int64MultiArray, Float64MultiArray
 
 class Bridge():
     def __init__(self):

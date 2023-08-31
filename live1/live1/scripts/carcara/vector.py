@@ -109,6 +109,9 @@ def logCAN(s) -> list:
 
     print(retorno)
 
+    if(msgECU[2] != 0x98):
+        ans = []
+
     return ans
     
 def sendMsg(s, msgCANId, value):
