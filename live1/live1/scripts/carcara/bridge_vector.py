@@ -21,8 +21,11 @@ class Bridge():
         self.pubCAN1 = rospy.Publisher('TPC10Bridge', Float64MultiArray , queue_size=1)
         
     def pubCANMessage(self, can_message):
-        self.__can_message.data = can_message 
+        self.__can_message.data = can_message#can_message 
+        print("mandei: ",end='')
+        print(self.__can_message)
         self.pubCAN.publish(self.__can_message)
+        self.pubCAN1.publish(self.__can_message)
 
     def callBackDataFromOrin(self, orin_message):
         print("callBackDataFromOrin")
@@ -51,8 +54,8 @@ def main():
         try:
             #recebimento [CAN -> ORIN]       
             data_logger = vc.logCAN(object_vector.socket)
-            if(data_logger != None and len(data_logger)):
-                object_vector.pubCANMessage(data_logger)
+            #if(data_logger != None and len(data_logger)):
+            object_vector.pubCANMessage(data_logger)
 
             #envio [ORIN -> CAN]
             if(object_vector.getFlagReceiveMessage()):
