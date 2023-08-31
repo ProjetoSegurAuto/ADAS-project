@@ -49,13 +49,16 @@ def main():
     #setup
     object_vector = Bridge()
     
+    older_can_msg = list()
+
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
             #recebimento [CAN -> ORIN]       
             data_logger = vc.logCAN(object_vector.socket)
-            #if(data_logger != None and len(data_logger)):
-            object_vector.pubCANMessage(data_logger)
+            if(len(data_logger) > 0 and older_can_msg != data_logger):
+                object_vector.pubCANMessage(data_logger)
+                older_can_msg = data_logger
 
             #envio [ORIN -> CAN]
             if(object_vector.getFlagReceiveMessage()):
