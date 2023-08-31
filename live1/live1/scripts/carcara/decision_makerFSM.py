@@ -87,8 +87,6 @@ class NodeDecisionMaker:
 
     def callback_logger(self, can_message):
         self.__flag_receive_can_msg = True
-        self.__can_message = list(can_message.data)
-        print("AQUIII: ",end='')
         print(self.__can_message)
     
     def getCANMessage(self):
@@ -107,7 +105,6 @@ class NodeDecisionMaker:
         return self.__myLeader
 
     def pubOrinToInfra(self, orin_message: list):
-        print("pubOrinToInfra")
         self.__orin_message = Int64MultiArray()
         self.__orin_message.data = orin_message 
         self.pubData.publish(self.__orin_message)
@@ -252,6 +249,12 @@ def main():
 
     while not rospy.is_shutdown():
         try:
+
+            can_msg = node_decision_maker.getCANMessage()
+            print("CAN RECEIVED: ", end='')
+            print(can_msg)
+            
+
             if(MY_ID == node_decision_maker.getWhatIsMyLeader()): #Se o carro é lider
                 decision_maker_fsm.update_state(node_decision_maker)
                 decision_maker_fsm.actions(node_decision_maker)
@@ -266,7 +269,7 @@ def main():
                 rpm_left = int()
                 rpm_right = int()
 
-                if(can_msg[0] == 1):
+                if(hex(int(can_msg[0])) == '0x98'):
                     leader = can_msg[1]
                     gap = can_msg[3]
                     destiny = can_msg[4]

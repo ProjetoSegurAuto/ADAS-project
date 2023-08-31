@@ -68,9 +68,6 @@ def main():
             if(nodeModeling.getFlagLogger()):
                 can_msg = nodeModeling.getCANMessage()
                 nodeModeling.setFlagLogger(False)
-
-                print("CAN RECEIVED: ", end='')
-                print(can_msg)
                 
                 #rever a separação da msg
                 if len(can_msg) == 3:

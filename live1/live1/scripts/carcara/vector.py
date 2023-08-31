@@ -100,6 +100,9 @@ def logCAN(s) -> list:
         log['Action'] = msgECU[4] 
 
     ans = list()
+
+    ans.append(float(msgECU[2]))
+
     retorno = ""
     for l in log:
         retorno = retorno + "{}: {} | ".format(l, log[l])
