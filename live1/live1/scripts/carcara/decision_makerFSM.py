@@ -88,6 +88,8 @@ class NodeDecisionMaker:
     def callback_logger(self, can_message):
         self.__flag_receive_can_msg = True
         self.__can_message = list(can_message.data)
+        print("AQUIII: ",end='')
+        print(self.__can_message)
     
     def getCANMessage(self):
         return self.__can_message
@@ -174,7 +176,7 @@ class DecisionMakerFSM:
         self.safe_distance = 1.4  #alterar para que a distacia de parada seja uma flag global  
 
         self.state = 0
-        self.rpm_can = 50  # Define a velociade de inicio do carro
+        self.rpm_can = 40  # Define a velociade de inicio do carro
         # Define o angulo de inicio da direção, no ideal começamos com ele ao centro
         self.angle_can = 25
         # Inicializa o temporizador de envio de msg na CAN
