@@ -87,7 +87,7 @@ class NodeDecisionMaker:
 
     def callback_logger(self, can_message):
         self.__flag_receive_can_msg = True
-        print(self.__can_message)
+        self.__can_message = list(can_message.data)
     
     def getCANMessage(self):
         return self.__can_message
