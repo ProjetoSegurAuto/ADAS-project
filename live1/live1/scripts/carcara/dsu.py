@@ -14,6 +14,7 @@ class DSU:
         
         self.ds = np.arange(self.MAXN, dtype=int)
         self.size = np.zeros(self.MAXN, dtype=int)
+        self.set_of_car = [Car(-1,-1,-1)] * self.MAXN
 
     def dsBuild(self):
         for i in range(self.MAXN):
@@ -30,8 +31,11 @@ class DSU:
         u = self.dsFind(car_u.idx)
         v = self.dsFind(car_v.idx)
         
-        cood_u = car_u.X
-        cood_v = car_v.X
+        self.set_of_car[car_u.idx] = car_u
+        self.set_of_car[car_v.idx] = car_v
+        
+        cood_u = self.set_of_car[u].X
+        cood_v = self.set_of_car[v].X
         
         #validação lógica parcial(distância geografica). Obs: neste ponto eu já sei que existe a condição para Platoon
         if(cood_u < cood_v):
