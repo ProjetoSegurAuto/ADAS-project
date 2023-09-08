@@ -75,7 +75,7 @@ def main():
                     curr_pos = int(can_msg[1]) 
                     curr_action = int(can_msg[2])
 
-                    if(last_node != curr_node and last_pos != curr_pos and last_action != curr_action):
+                    if(last_node != curr_node or last_pos != curr_pos or last_action != curr_action):
                         if curr_action == 1:
                             car_u = dsu.Car(MY_ID, 0, 0) #minha posição é o segundo argumento, precisa implementar
                             car_v = dsu.Car(curr_node, curr_pos, 0)
