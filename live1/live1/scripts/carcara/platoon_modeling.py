@@ -70,10 +70,10 @@ def main():
                 nodeModeling.setFlagLogger(False)
                 
                 #rever a separação da msg
-                if len(can_msg) == 3:
-                    curr_node = int(can_msg[0])
-                    curr_pos = int(can_msg[1]) 
-                    curr_action = int(can_msg[2])
+                if (hex(int(can_msg[0])) == '0x93'):
+                    curr_node = int(can_msg[1])
+                    curr_pos = int(can_msg[2]) 
+                    curr_action = int(can_msg[3])
 
                     if(last_node != curr_node or last_pos != curr_pos or last_action != curr_action):
                         if curr_action == 1:

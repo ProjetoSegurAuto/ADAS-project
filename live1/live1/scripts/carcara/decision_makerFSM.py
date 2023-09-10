@@ -269,7 +269,7 @@ def main():
                 rpm_left = int()
                 rpm_right = int()
 
-                if(hex(int(can_msg[0])) == '0x98'):
+                if(hex(int(can_msg[0])) == '0x93'):
                     leader = can_msg[1]
                     gap = can_msg[3]
                     destiny = can_msg[4]
