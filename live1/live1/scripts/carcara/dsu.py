@@ -12,17 +12,18 @@ class DSU:
     def __init__(self):
         self.MAXN = 110
         
-        self.ds = np.arange(self.MAXN, dtype=int)
-        self.size = np.zeros(self.MAXN, dtype=int)
+        self.__ds = np.arange(self.MAXN, dtype=int)
+        self.__size = np.zeros(self.MAXN, dtype=int)
+        self.__set_of_car = [Car(-1,-1,-1)] * self.MAXN
 
     def dsBuild(self):
         for i in range(self.MAXN):
-            self.ds[i] = i
-            self.size[i] = 1
+            self.__ds[i] = i
+            self.__size[i] = 1
     
     def dsFind(self, car: int) -> int:
-        if(car != self.ds[car]) :
-            return self.dsFind(self.ds[car])
+        if(car != self.__ds[car]) :
+            return self.dsFind(self.__ds[car])
         else:
             return car
         
@@ -30,37 +31,38 @@ class DSU:
         u = self.dsFind(car_u.idx)
         v = self.dsFind(car_v.idx)
         
-        cood_u = car_u.X
-        cood_v = car_v.X
+        self.__set_of_car[car_u.idx] = car_u
+        self.__set_of_car[car_v.idx] = car_v
         
+        cood_u = self.__set_of_car[u].X
+        cood_v = self.__set_of_car[v].X
+        
+        print(f"cood_u: {cood_u} and cood_v {cood_v}")
         #validação lógica parcial(distância geografica). Obs: neste ponto eu já sei que existe a condição para Platoon
         if(cood_u < cood_v):
             u, v = v, u
 
-        self.ds[v] = u
-        self.size[u] += self.size[v]
+        self.__ds[v] = u
+        self.__size[u] += self.__size[v]
 
-    #Pensar melhor nesse algoritmo, pois só tá válido na tail
     def dsLeave(self, car_u : Car):
-        
-        # most_dist = -1
-        # new_platoon_father = -1
+        #subconjunto de componente conexo
+        subset = list()
+        for i in range(self.MAXN):
+            if(self.dsFind(i) == self.dsFind(car_u.idx)):
+                subset.append(i)
 
-        # for i in range(self.length):
-        #     if(i != car_u.idx and self.dsFind(car_u.idx) == car_u.idx):
-        #         if(most_dist < cars[i].X):
-        #             most_dist = cars[i].X
-        #             new_platoon_father = i
-
-        # if(new_platoon_father != -1):
-        #     for i in range(self.length):
-        #         if(self.dsFind(i) == self.dsFind(car_u.idx)):
-        #             self.ds[i] = new_platoon_father
+        #rebuildar
+        for i in subset:
+            self.__ds[i] = i
+            self.__size[i] = 1
+        self[car_u.idx] = car_u.idx
+        self.__size[car_u.idx] = 1
         
-        self.size[self.dsFind(car_u.idx)] = self.size[self.dsFind(car_u.idx)] - 1
-        self.ds[car_u.idx] = car_u.idx
-        self.size[car_u.idx] = 1
+        #união
+        for i in range(1, self.MAXN):
+            self.dsUnion(self.__set_of_car[i-1], self.__set_of_car[i])
 
     def getSize(self, u: int) -> int:
         u = self.dsFind(u)
-        return self.size[u]
+        return self.__size[u]
