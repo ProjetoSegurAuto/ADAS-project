@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 ##########
-# Informações sobre esse Node:
-# Nome: vector
-# Descrição: Nó ROS que realiza a ponte entre a Orin e a Vector. Este nó surge da necessidade de outros nós, além do deciosion maker, ter acesso a comunicação intra-veicular. i) O dado enviados pela Orin é igual ao projeto original, entretanto deve ser alocado mais um espaço e o último elemento representa o ID da msg
+#Informações sobre esse Node:
+#Nome: vector
+#Descrição: Nó ROS que realiza a ponte entre a Orin e a Vector. Este nó surge da necessidade de outros nós, além do deciosion maker, ter acesso a comunicação intra-veicular. i) O dado enviados pela Orin é igual ao projeto original, entretanto deve ser alocado mais um espaço e o último elemento representa o ID da msg
 
 import rospy
 import vector as vc
-from std_msgs.msg import String, Int64MultiArray
+from std_msgs.msg import Int64MultiArray, Float64MultiArray
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
 import sys
 
@@ -65,17 +65,21 @@ class MonitorWindow(QMainWindow):
 
 class Bridge():
     def __init__(self):
-        self.__can_message = String()
+        self.__can_message = Float64MultiArray()
         self.__orin_message = Int64MultiArray()
         self.__flagReceive = False
-        self.socket = vc.openSocket()
+        self.socket = vc.openSocket()  
 
         self.subDataFromOrin = rospy.Subscriber('TPC10Decision_Maker', Int64MultiArray, self.callBackDataFromOrin)
-        self.pubCAN = rospy.Publisher('TPC9Bridge', String, queue_size=1)
-
+        self.pubCAN = rospy.Publisher('TPC9Bridge', Float64MultiArray , queue_size=1)
+        self.pubCAN1 = rospy.Publisher('TPC10Bridge', Float64MultiArray , queue_size=1)
+        
     def pubCANMessage(self, can_message):
-        self.__can_message = can_message
-        self.pubCAN.publish(String(self.__can_message))
+        self.__can_message.data = can_message#can_message 
+        print("mandei: ",end='')
+        print(self.__can_message)
+        self.pubCAN.publish(self.__can_message)
+        self.pubCAN1.publish(self.__can_message)
 
     def callBackDataFromOrin(self, orin_message):
         print("callBackDataFromOrin")
@@ -84,26 +88,29 @@ class Bridge():
 
     def getDataFromOrin(self) -> list:
         return list(self.__orin_message.data)
-
+    
     def getFlagReceiveMessage(self) -> bool:
         return self.__flagReceive
-
+    
     def setFlagReceiveMessage(self, value: bool):
         self.__flagReceive = value
 
-
 def main():
+
+    #Setup ROS
+    rospy.init_node('bridge-communication')                #inicia o Node
+    rospy.loginfo('the node bridge beetwen Orin and Vector Can-Bus was started!')
+    
+    #setup
+    object_vector = Bridge()
+
     #Init GUI:
     app = QApplication(sys.argv)
     window = MonitorWindow()
     window.show()
-
-    # Setup ROS
-    rospy.init_node('bridge-communication')  # inicia o Node
-    rospy.loginfo('the node bridge beetwen Orin and Vector Can-Bus was started!')
-
-    # setup
-    object_vector = Bridge()
+    app.exec_()
+    
+    older_can_msg = list()
 
     # loop
     while not rospy.is_shutdown():  # Enquanto o ros não for fechado
@@ -184,10 +191,7 @@ def main():
                 object_vector.setFlagReceiveMessage(False)
 
         except Exception as e:
-            print(e)
-
-    sys.exit(app.exec_())
-
+            print(e) 
 
 if __name__ == "__main__":
     main()
