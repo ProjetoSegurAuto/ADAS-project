@@ -88,6 +88,8 @@ def main():
                         last_pos = curr_pos
                         last_action = curr_action
                 
+                can_msg.clear()
+
             #envia para o DM o pai
             nodeModeling.pubMsgLeader(dsu_.dsFind(MY_ID))          
         except Exception as e: 
