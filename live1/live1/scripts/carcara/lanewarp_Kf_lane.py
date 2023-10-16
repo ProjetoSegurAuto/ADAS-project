@@ -117,8 +117,8 @@ class LaneWarp():
         blurred = cv2.GaussianBlur(img_v, (7, 7), 0)
 
         # (T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
-        # (T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
-        (T, thresh) = cv2.threshold(blurred, 122, 255, cv2.THRESH_BINARY_INV)  # indoor
+        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #indoor 12-14hrs
+        # (T, thresh) = cv2.threshold(blurred, 122, 255, cv2.THRESH_BINARY_INV)   #indoor
         # (T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
 
         kernel = np.ones((7, 7), np.uint8)
@@ -639,8 +639,8 @@ def main():
                 print("Exception: {}".format(ex))
                 pass
 
-            except KeyboardInterrupt:
-                print("Exception: KeyboardInterrupt Lane")
+            #except KeyboardInterrupt:
+            #    print("Exception: KeyboardInterrupt Lane")
 
 
 if (__name__ == "__main__"):

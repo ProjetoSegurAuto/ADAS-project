@@ -120,8 +120,8 @@ def main():
 
                 gc.collect()
             except Exception as ex:
-                print("Exception: {}".format(ex))
-                #break
+                #print("Exception: {}".format(ex))
+                pass
 
     rospy.spin()
 

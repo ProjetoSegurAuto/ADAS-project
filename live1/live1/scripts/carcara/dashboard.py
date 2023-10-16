@@ -114,11 +114,11 @@ def main():
                                   nodeDashboard.msgTPC7LKAresult, nodeDashboard.msgTPC3ImgYOLO)
 
             except Exception as ex:
-                print("Exception: {}".format(ex))
+                #print("Exception: {}".format(ex))
                 pass
 
-            except KeyboardInterrupt:
-                print("Exception: KeyboardInterrupt Lane")
+            #except KeyboardInterrupt:
+            #    print("Exception: KeyboardInterrupt Lane")
 
 
 if (__name__ == "__main__"):

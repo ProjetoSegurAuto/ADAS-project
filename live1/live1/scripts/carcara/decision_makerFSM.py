@@ -13,6 +13,7 @@ from std_msgs.msg import Float64, Float64MultiArray, Int64MultiArray, String, In
 import ast
 import gc
 import acc
+from log import *
 
 flag_distance_received = False
 flag_vehicle_position_received = False
@@ -28,6 +29,8 @@ flag_break_yolo = False
 flag_acc = False
 can_id = 0x00
 can_params = []
+
+depth_list = []
 
 MY_ID = 0
 GAP = 10
@@ -51,7 +54,7 @@ class NodeDecisionMaker:
         self.sub_object_yolo = rospy.Subscriber('TPC3ObjectYOLO', String, self.callback_object_yolo)
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
         self.sub_can_message = rospy.Subscriber('TPC10Bridge', Float64MultiArray, self.callback_logger)
-        self.subModeling = rospy.Subscriber('TPC9Leader', Int32, self.callbackMyLeader)
+        #self.subModeling = rospy.Subscriber('TPC9Leader', Int32, self.callbackMyLeader)
 
         self.pubData = rospy.Publisher('TPC10Decision_Maker', Int64MultiArray , queue_size=1)
 
@@ -181,7 +184,7 @@ class DecisionMakerFSM:
         
         self.gap = 1.1
         self.state = 0
-        self.rpm_can = 30  # Define a velociade de inicio do carro
+        self.rpm_init = 30  # Define a velociade de inicio do carro
         # Define o angulo de inicio da direção, no ideal começamos com ele ao centro
         self.angle_can = 25
         # Inicializa o temporizador de envio de msg na CAN
@@ -199,11 +202,15 @@ class DecisionMakerFSM:
 
     def actions(self, node_decision_maker):
         global flag_vehicle_can_init
+        global depth_list
+
         if self.state == 0:
+            #flag_object_yolo_received = True
             if flag_vehicle_position_received and flag_steering_received and flag_curve_radius_received and flag_distance_received and flag_object_yolo_received:
                 #print("Estado: {}. Inicialização do carro autorizada!".format(self.dic_states[self.state]))
                 flag_vehicle_can_init = True
                 try:
+                    self.rpm_can =  self.rpm_init
                     msg_can_id = 0x56
                     param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
                     node_decision_maker.pubOrinToInfra(param)
@@ -222,7 +229,7 @@ class DecisionMakerFSM:
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
                 
-                self.rpm_can = 30
+                self.rpm_can =  self.rpm_init
                 ang_dir = node_decision_maker.msg_steering
 
                 msg_can_id = 0x82
@@ -249,7 +256,7 @@ class DecisionMakerFSM:
                 node_decision_maker.pubOrinToInfra(param)
 
         elif self.state == 3:  
-            print("Estado: {}. ACC".format(self.dic_states[self.state]))
+            #print("Estado: {}.".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.ACC_bufferTime[0] = self.t_send_msg_can
                 self.ACC_bufferTime[1] = time.time()
@@ -261,35 +268,53 @@ class DecisionMakerFSM:
                 node_decision_maker.pubOrinToInfra(param)
                 
                 can_msg = node_decision_maker.getCANMessage()
-                print(can_msg)
-                if(hex(int(can_msg[0])) == '0x50'):
+                #print(can_msg)
+
+                if(len(can_msg) and hex(int(can_msg[0])) == '0x50'):
+                    #file = open('ACC_20231006.txt', 'a')
+
                     rpm_left = can_msg[3]
                     rpm_right = can_msg[5]
                     rpm_mean = int((rpm_left + rpm_right)/2)
-                    print("RPM LEFT: {}".format(rpm_left))
+                    #print("RPM LEFT: {}".format(rpm_left))
 
                     erro = node_decision_maker.msg_depth - self.gap
                     self.ACC_bufferError[0] = self.ACC_bufferError[1]
                     self.ACC_bufferError[1] = erro
                     dErro = (self.ACC_bufferError[1] - self.ACC_bufferError[0])/(self.ACC_bufferTime[1] - self.ACC_bufferTime[0])
-                    print("ACC_bufferError: {}".format(self.ACC_bufferError))
-                    print("ACC_bufferTime: {}".format(self.ACC_bufferTime))
-                    print("Erro: {}".format(erro))
-                    print("dErro: {}".format(dErro))
+                    #print("ACC_bufferError: {}".format(self.ACC_bufferError))
+                    #print("ACC_bufferTime: {}".format(self.ACC_bufferTime))
+                    #print("Erro: {}".format(erro))
+                    #print("dErro: {}".format(dErro))
                     rpm_acc = int(self.acc.controller(erro, dErro))
-                    print("RPM ACC: {}".format(rpm_acc))
+                    #print("RPM ACC: {}".format(rpm_acc))
 
                     self.rpm_can = rpm_mean + rpm_acc
-                    print("RPM CAR: {}".format(self.rpm_can))
+                    #print("RPM CAR: {}".format(self.rpm_can))
 
                     msg_can_id = 0x56
                     param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
                     node_decision_maker.pubOrinToInfra(param)
-                   
+
+                    ang_dir = node_decision_maker.msg_steering
+                    msg_can_id = 0x82
+                    param = [ang_dir, msg_can_id]
+                    node_decision_maker.pubOrinToInfra(param)
+
+                    #linha_arquivo =[('{};{};{};{};{};{}').format(time.time(), node_decision_maker.msg_depth, erro, dErro, rpm_acc, self.rpm_can)]
+                    linha_arquivo =[[time.time(), node_decision_maker.msg_depth, erro, dErro, rpm_acc, self.rpm_can]]
+                    df = pd.DataFrame(linha_arquivo, columns=['time', 'distance', 'error', 'dError', 'out_acc(rpm)', 'rpm_can'])
+                    save_dataframe_to_csv(linha_arquivo, columns=['time', 'distance', 'error', 'dError', 'out_acc(rpm)', 'rpm_can'])
+                    print(linha_arquivo)
+
+                    #with open('ACC_20231006.txt', 'a', encoding='utf-8') as a_writer:
+                    #    a_writer.write(linha_arquivo)
+                    #a_writer.close()
                 else:
                     del can_msg[:]
-
 def main():
+    global depth_list
+
     rospy.init_node("Decisionmaker")
     #print("O node Decision Maker foi iniciado")
 
@@ -305,11 +330,11 @@ def main():
             #print(can_msg)
             
 
-            if(MY_ID == node_decision_maker.getWhatIsMyLeader()): #Se o carro é lider
+            #if(MY_ID == node_decision_maker.getWhatIsMyLeader()): #Se o carro é lider
                 #print(f"Im my own leader")
-                decision_maker_fsm.update_state(node_decision_maker)
-                decision_maker_fsm.actions(node_decision_maker)
-
+            decision_maker_fsm.update_state(node_decision_maker)
+            decision_maker_fsm.actions(node_decision_maker)
+            '''
             else:# Se o carro é filho
                 #leitura de dados da CAN(dados do Pai)
                 #print(f"my leader {node_decision_maker.getWhatIsMyLeader()}")
@@ -332,7 +357,7 @@ def main():
                     rpm_right = can_msg[8]
                 
                 #implemente nesta linha a FSM para o filho!
-           
+            '''
             gc.collect()
 
         except Exception as ex:

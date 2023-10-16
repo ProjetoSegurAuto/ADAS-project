@@ -6,7 +6,6 @@
     <node name="yolo" pkg="live1" type="yolo.py" output="screen"/> 
     <node name="dashboard" pkg="live1" type="dashboard.py" output="screen"/>
     <node name="vector" pkg="live1" type="bridge_vector.py" output="screen"/>
-    <node name="representation_platoon" pkg="live1" type="platoon_modeling.py" output="screen"/>
     <node name="decision_maker" pkg="live1" type="decision_makerFSM.py" output="screen"/>
 
 <!-- 
