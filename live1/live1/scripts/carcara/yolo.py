@@ -56,7 +56,7 @@ class NodeYOLO():
     
     #Detecta objetos na imagem
     def getObjetcs(self, image):
-        results = self.model.predict(image, conf=0.7)  
+        results = self.model.predict(image, conf=0.7, verbose=False)  
         objectsYOLO = {}
         objectYOLO = {
             "classId": 0,

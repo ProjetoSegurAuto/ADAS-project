@@ -121,7 +121,7 @@ class Depth():
 def main():
     #Setup ROS
     rospy.init_node('Depth')                #inicia o Node
-    rospy.loginfo('O node depth foi iniciado!')
+    rospy.loginfo('O node Depth foi iniciado!')
 
     nodeDepth = NodeDepth()                 #instanciando o objeto do No ros
     depthobj = Depth()                      #instanciando o objeto da profundidade
