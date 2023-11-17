@@ -8,6 +8,7 @@
 import rospy
 import vector as vc
 from std_msgs.msg import Int64MultiArray, Float64MultiArray
+from cohda_sender import Send2Cohda
 
 class Bridge():
     def __init__(self):
@@ -51,20 +52,27 @@ def main():
     
     older_can_msg = list()
 
+    cohda = Send2Cohda('192.168.1.10', 9000)
+
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
-            #recebimento [CAN -> ORIN]       
+            #recebimento [CAN -> ORIN] | OBS: REFAZER ESSA FUNÇÃO, POIS ESTÁ MUITO LENTO   
             data_logger = vc.logCAN(object_vector.socket)
             if(len(data_logger) > 0 and older_can_msg != data_logger):
                 object_vector.pubCANMessage(data_logger)
                 older_can_msg = data_logger
 
-            #envio [ORIN -> CAN]
+            #envio [ORIN -> CAN] | [ORIN -> COHDA]
             if(object_vector.getFlagReceiveMessage()):
                 curr_data = object_vector.getDataFromOrin()
                 print(curr_data)
-                vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
+                if(curr_data[len(curr_data)-1] < 0x90):
+                    vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
+                else:
+                    ID = curr_data.pop()
+                    curr_data.insert(0, ID)
+                    cohda.sendPacket(curr_data)
                 object_vector.setFlagReceiveMessage(False)
 
         except Exception as e: 
