@@ -104,7 +104,7 @@ class NodeDecisionMaker:
     def getWhatIsMyLeader(self):
         return self.__myLeader
 
-    def pubOrinToInfra(self, orin_message: list):
+    def pubOrinToAnyArchitecture(self, orin_message: list):
         self.__orin_message = Int64MultiArray()
         self.__orin_message.data = orin_message 
         self.pubData.publish(self.__orin_message)
@@ -195,12 +195,12 @@ class DecisionMakerFSM:
                 try:
                     msg_can_id = 0x56
                     param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
-                    node_decision_maker.pubOrinToInfra(param)
+                    node_decision_maker.pubOrinToAnyArchitecture(param)
                     print("Mensagem para ECU POWERTRAIN: ", msg_can_id, param)
 
                     msg_can_id = 0x82
                     param = [self.angle_can, msg_can_id]
-                    node_decision_maker.pubOrinToInfra(param)
+                    node_decision_maker.pubOrinToAnyArchitecture(param)
                     print("Mensagem para ECU DIREÇÃO: ", msg_can_id, param)
 
                 except Exception as ex:
@@ -214,16 +214,16 @@ class DecisionMakerFSM:
 
                 msg_can_id = 0x82
                 param = [ang_dir, msg_can_id]
-                node_decision_maker.pubOrinToInfra(param)
+                node_decision_maker.pubOrinToAnyArchitecture(param)
 
                 msg_can_id = 0x56
                 param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
-                node_decision_maker.pubOrinToInfra(param)
+                node_decision_maker.pubOrinToAnyArchitecture(param)
 
                 destiny = 13
                 localization = 7
                 param = [MY_ID, GAP, destiny, localization, ang_dir, self.rpm_can, self.rpm_can, 0x94]
-                node_decision_maker.pubOrinToInfra(param)
+                node_decision_maker.pubOrinToAnyArchitecture(param)
 
         elif self.state == 2:
             print("Estado: {}. Emergência!".format(self.dic_states[self.state]))
@@ -231,12 +231,12 @@ class DecisionMakerFSM:
                 self.t_send_msg_can = time.time()
                 param = can_params 
                 param.append(can_id)
-                node_decision_maker.pubOrinToInfra(param)
+                node_decision_maker.pubOrinToAnyArchitecture(param)
 
                 destiny = 13
                 localization = 7
                 param = [MY_ID, GAP, destiny, localization, node_decision_maker.msg_steering, 0, 0, 0x94]
-                node_decision_maker.pubOrinToInfra(param)       
+                node_decision_maker.pubOrinToAnyArchitecture(param)       
 
 
 def main():
@@ -292,12 +292,12 @@ def main():
             msg_can_id = 0x56
             param = [1, rpm, 1, rpm, msg_can_id]
             print("FREIA PID - KeyboardInterrupt")
-            node_decision_maker.pubOrinToInfra(param)
+            node_decision_maker.pubOrinToAnyArchitecture(param)
 
             ang_dir = 25
             msg_can_id = 0x82
             param = [ang_dir, msg_can_id]
-            node_decision_maker.pubOrinToInfra(param)
+            node_decision_maker.pubOrinToAnyArchitecture(param)
 
             break
 

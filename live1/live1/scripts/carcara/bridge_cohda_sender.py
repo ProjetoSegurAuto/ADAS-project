@@ -38,23 +38,20 @@ def main():
     rospy.loginfo('the node bridge beetwen Orin and any device was started!')
     
     #setup
-    object_vector = BridgeSender()
-    object_cohda = Send2object_Cohda('192.168.1.10', 9000)
+    object_cohda = BridgeSender()
+    cohda = Send2object_Cohda('192.168.1.10', 9000)
 
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
-            #envio [ORIN -> CAN] | [ORIN -> object_COHDA]
-            if(object_vector.getFlagReceiveMessage()):
-                curr_data = object_vector.getDataFromOrin()
-                print(f"dado corrente: {curr_data}")
-                if(curr_data[len(curr_data)-1] < 0x90):
-                    vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
-                else:
+            if(object_cohda.getFlagReceiveMessage()):
+                curr_data = object_cohda.getDataFromOrin()
+                if(curr_data[len(curr_data)-1] >= 0x90):
                     ID = curr_data.pop()
                     curr_data.insert(0, ID)
-                    object_cohda.sendPacket(curr_data)
-                object_vector.setFlagReceiveMessage(False)
+                    cohda.sendPacket(curr_data)
+                    object_cohda.setFlagReceiveMessage(False)
+                    
 
         except Exception as e: 
             print(e) 
