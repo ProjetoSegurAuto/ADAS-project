@@ -3,7 +3,6 @@ import struct
 import time
 
 class Send2Cohda():
-
     def __init__(self, HOST, PORT) -> None:
         self.SERVER_HOST = HOST
         self.SERVER_PORT = PORT
