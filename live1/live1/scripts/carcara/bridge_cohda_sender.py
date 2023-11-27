@@ -8,7 +8,7 @@
 import rospy
 import vector as vc
 from std_msgs.msg import Int64MultiArray, Float64MultiArray
-from cohda_sender import Send2object_Cohda
+from cohda_sender import Send2Cohda
 
 class BridgeSender():
     def __init__(self):
@@ -39,7 +39,7 @@ def main():
     
     #setup
     object_cohda = BridgeSender()
-    cohda = Send2object_Cohda('192.168.1.10', 9000)
+    cohda = Send2Cohda('192.168.1.10', 9000)
 
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
