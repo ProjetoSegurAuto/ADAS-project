@@ -148,7 +148,7 @@ class controllerFuzzy():
         dErro = int(dErro)
         
         saida_ms = self.defuzzyficacao(self.inferencia(self.fuzzyficacao(erro, dErro)))/100
-        #print(saida_ms)
-        saida_rpm = (saida_ms/0.15) * 2 * 3.14 / 60
-        
+        print(saida_ms)
+        saida_rpm = ((saida_ms/0.15) * 60) / (2 * 3.14)
+
         return saida_rpm

@@ -8,15 +8,15 @@ s = vc.openSocket()
 print(s)
 tSendMsgCAN = time.time()  
 angDir = 1
-rpmCan = 0
+rpmCan = 20
 
 while True:
         try: 
                 if 0.05 < time.time() - tSendMsgCAN:
-                        #msgCanId = 0x56
-                        #param = [1, rpmCan, 1, rpmCan]
-                        msgCanId = 0x82
-                        param = [angDir]
+                        msgCanId = 0x56
+                        param = [1, rpmCan, 1, rpmCan]
+                        #msgCanId = 0x82
+                        #param = [angDir]
                         #msgCanId = 0x94
                         #param = [3, 0, 0, 0, angDir, rpmCan, rpmCan]
                         #print(param)

@@ -36,13 +36,13 @@ depth_list = []
 '''
 Definição das constantes
 '''
-RPM_INIT = 0
+RPM_INIT = 25
 ANGLE_INIT = 25
 STATE_INIT = 0
-GAP_INIT = 10
-DISTANCE_ACC = 1.4 
-DISTANCE_STOP = 0.7 
-TIME_CAN = 0.001 # Intervalo de tempo para envio de msg na CAN
+GAP_INIT = 1.1
+DISTANCE_ACC = 1.35 
+DISTANCE_STOP = 0.8 #0.7
+TIME_CAN = 0.01 #0.001 Intervalo de tempo para envio de msg na CAN
 
 class NodeDecisionMaker:
     def __init__(self):
@@ -165,7 +165,8 @@ class DecisionMakerFSM:
         self.state = STATE_INIT
         self.rpm_init = RPM_INIT 
         self.angle_can = ANGLE_INIT
-        self.time_min = TIME_CAN  
+        self.time_min = TIME_CAN
+        self.rpm_can_acc = 0  
 
         self.t_send_msg_can = time.time() # Inicializa o temporizador de envio de msg na CAN
         self.ACC_bufferError = [node_decision_maker.msg_depth, node_decision_maker.msg_depth]
@@ -224,7 +225,7 @@ class DecisionMakerFSM:
                 node_decision_maker.pubOrinToInfra(param)
 
         elif self.state == 3:  
-            #print("Estado: {}.".format(self.dic_states[self.state]))
+            print("Estado: {}.".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 
                 self.ACC_bufferTime[0] = self.t_send_msg_can
@@ -244,15 +245,19 @@ class DecisionMakerFSM:
                     rpm_mean = int((rpm_left + rpm_right)/2)
                     #print("RPM LEFT: {}".format(rpm_left))
 
-                    erro = node_decision_maker.msg_depth - self.gap
+                    erro = (node_decision_maker.msg_depth - self.gap)*100
                     self.ACC_bufferError[0] = self.ACC_bufferError[1]
                     self.ACC_bufferError[1] = erro
                     dErro = (self.ACC_bufferError[1] - self.ACC_bufferError[0])/(self.ACC_bufferTime[1] - self.ACC_bufferTime[0])
                     rpm_acc = int(self.acc.controller(erro, dErro))
-                    self.rpm_can = rpm_mean + rpm_acc
-
+                    self.rpm_can_acc = rpm_mean + rpm_acc
+                    if self.rpm_can_acc > 90:
+                        self.rpm_can_acc = 90
+                    elif self.rpm_can_acc < 0:
+                        self.rpm_can_acc = 0
+                        
                     msg_can_id = 0x56
-                    param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
+                    param = [1, self.rpm_can_acc, 1, self.rpm_can_acc, msg_can_id]
                     node_decision_maker.pubOrinToInfra(param)
 
                     ang_dir = node_decision_maker.msg_steering
@@ -260,8 +265,8 @@ class DecisionMakerFSM:
                     param = [ang_dir, msg_can_id]
                     node_decision_maker.pubOrinToInfra(param)
 
-                    linha_arquivo =[[time.time(), node_decision_maker.msg_depth, erro, dErro, rpm_acc, self.rpm_can]]
-                    columns = ['time', 'distance', 'error', 'dError', 'out_acc(rpm)', 'rpm_can']
+                    linha_arquivo =[[time.time(), node_decision_maker.msg_depth, erro, dErro, rpm_acc, rpm_mean, self.rpm_can_acc]]
+                    columns = ['time', 'distance', 'error', 'dError', 'out_acc(rpm)', 'rpm_mean' ,'rpm_can']
                     #print(linha_arquivo)
                     log.save_dataframe_to_csv(linha_arquivo, columns)
                     
