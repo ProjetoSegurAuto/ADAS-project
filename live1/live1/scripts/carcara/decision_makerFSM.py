@@ -173,7 +173,7 @@ class DecisionMakerFSM:
         self.safe_distance = 1.4  #alterar para que a distacia de parada seja uma flag global  
 
         self.state = 0
-        self.rpm_can = 40  # Define a velociade de inicio do carro
+        self.rpm_can = 0  # Define a velociade de inicio do carro
         # Define o angulo de inicio da direção, no ideal começamos com ele ao centro
         self.angle_can = 25
         # Inicializa o temporizador de envio de msg na CAN
@@ -259,7 +259,7 @@ def main():
                 decision_maker_fsm.actions(node_decision_maker)
 
                 msg_can_id = 0x94
-                param = [MY_ID, 13, 1, 1, 1, 54, 54, msg_can_id]
+                param = [MY_ID, 13, 1, 1, 54, 54, msg_can_id]
                 print("Dados do pai construido")
                 node_decision_maker.pubOrinToAnyArchitecture(param)
 
