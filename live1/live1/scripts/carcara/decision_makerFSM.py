@@ -254,10 +254,15 @@ def main():
             print("CAN RECEIVED: ", end='')
             print(can_msg)
             
-
             if(MY_ID == node_decision_maker.getWhatIsMyLeader()): #Se o carro é lider
                 decision_maker_fsm.update_state(node_decision_maker)
                 decision_maker_fsm.actions(node_decision_maker)
+
+                msg_can_id = 0x94
+                param = [MY_ID, 13, 1, 1, 1, 54, 54, msg_can_id]
+                print("Dados do pai construido")
+                node_decision_maker.pubOrinToAnyArchitecture(param)
+
             else:# Se o carro é filho
                 #leitura de dados da CAN(dados do Pai)
                 can_msg = node_decision_maker.getCANMessage()
@@ -270,6 +275,7 @@ def main():
                 rpm_right = int()
 
                 if(hex(int(can_msg[0])) == '0x93'):
+                    print("Dados do meu pai: ", end=': ')
                     leader = can_msg[1]
                     gap = can_msg[3]
                     destiny = can_msg[4]
@@ -277,6 +283,8 @@ def main():
                     direction = can_msg[6]
                     rpm_left = can_msg[7]
                     rpm_right = can_msg[8]
+
+                    print(f"{leader} | {gap} | {destiny} | {localization} | {direction} | {rpm_left} | {rpm_right}\n\n")
                 
                 #implemente nesta linha a FSM para o filho!
 
