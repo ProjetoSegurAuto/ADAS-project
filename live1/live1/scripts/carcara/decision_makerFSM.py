@@ -255,11 +255,12 @@ def main():
             print(can_msg)
             
             if(MY_ID == node_decision_maker.getWhatIsMyLeader()): #Se o carro é lider
-                decision_maker_fsm.update_state(node_decision_maker)
-                decision_maker_fsm.actions(node_decision_maker)
+                # decision_maker_fsm.update_state(node_decision_maker)
+                # decision_maker_fsm.actions(node_decision_maker)
 
-                msg_can_id = 0x94
+                msg_can_id = 0x90
                 param = [MY_ID, 13, 1, 1, 54, 54, msg_can_id]
+                #param = [0,1,0,1,msg_can_id]
                 print("Dados do pai construido")
                 node_decision_maker.pubOrinToAnyArchitecture(param)
 
@@ -274,7 +275,7 @@ def main():
                 rpm_left = int()
                 rpm_right = int()
 
-                if(hex(int(can_msg[0])) == '0x93'):
+                if(hex(int(can_msg[0])) == '0x91'):
                     print("Dados do meu pai: ", end=': ')
                     leader = can_msg[1]
                     gap = can_msg[3]

@@ -6,8 +6,7 @@
     <node name="yolo" pkg="live1" type="yolo.py" output="screen"/> 
     <node name="dashboard" pkg="live1" type="dashboard.py" output="screen"/>
     <node name="vector" pkg="live1" type="bridge_vector.py" output="screen"/>
-    <node name="cohdasender" pkg="live1" type="bridge_cohda_sender.py" output="screen"/>
-    <node name="cohdareceiver" pkg="live1" type="bridge_cohda_receiver.py" output="screen"/>
+    
     <node name="representation_platoon" pkg="live1" type="platoon_modeling.py" output="screen"/>
     <node name="decision_maker" pkg="live1" type="decision_makerFSM.py" output="screen"/>
 
@@ -22,6 +21,8 @@
 
     <node name="plates" pkg="live1" type="placas.py" output="screen"/>
 
+	<node name="cohdasender" pkg="live1" type="bridge_cohda_sender.py" output="screen"/>
+    <node name="cohdareceiver" pkg="live1" type="bridge_cohda_receiver.py" output="screen"/>
     
     -->
 

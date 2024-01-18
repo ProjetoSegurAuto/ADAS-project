@@ -118,7 +118,7 @@ class LaneWarp():
 
         # (T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         # (T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
-        (T, thresh) = cv2.threshold(blurred, 122, 255, cv2.THRESH_BINARY_INV)  # indoor
+        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV)  # indoor
         # (T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
 
         kernel = np.ones((7, 7), np.uint8)

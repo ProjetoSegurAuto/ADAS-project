@@ -5,8 +5,10 @@ import arithmetic_things as AT
 log = {}
 
 def logCAN(s) -> list:
+    msgECU = list()
     msgECU = s.recv(14)
-    
+    if(len(msgECU) == 0):
+        return []
     if msgECU[2] == 0x80:
         log['ECU'] = 'Direcao'
         log['Angulo'] = msgECU[9]
@@ -69,7 +71,7 @@ def logCAN(s) -> list:
         log['rpmEsq'] = msgECU[11]
         log['rpmDir'] = msgECU[12]
 
-    elif msgECU[2] == 0x93:
+    elif msgECU[2] == 0x91:
         log['SOFTWARE'] = 'GROJOBA'
         log['ID'] = msgECU[6]
         log['Role'] = msgECU[7]
@@ -139,6 +141,13 @@ def sendMsg(s, msgCANId, value):
             
         elif msgCANId == 0x90:   #Le os ganhos do PID - Atual
             mesg[0] = 1          #CAN1
+
+            mesg[9] =  value[0]      #
+            mesg[10] = value[1]      #Kp
+            mesg[11] = value[2]      #
+            mesg[12] = value[3]      #Ki
+            mesg[13] = value[4]      #
+            mesg[14] = value[5]      #Kd
         
         elif msgCANId == 0x92:   #Reset ECU Direcao
             mesg[0] = 1          #CAN1
@@ -201,13 +210,13 @@ def sendMsg(s, msgCANId, value):
         #---------------------ECU COMUNICAÇÃO--------------------------------
         elif msgCANId == 0x94:       #Mensagem enviada para GROJOBA
             mesg[0]  = 1             #CAN1
-            mesg[8]  = value[0]      #ID do carro
-            mesg[9]  = value[1]      #GAP
-            mesg[10] = value[2]      #Destino
-            mesg[11] = value[3]      #Localização
-            mesg[12] = value[4]      #Direção
-            mesg[13] = value[5]      #RpmEsq
-            mesg[14] = value[6]      #RpmDir
+            # mesg[8]  = value[0]      #ID do carro
+            # mesg[9]  = value[1]      #GAP
+            # mesg[10] = value[2]      #Destino
+            # mesg[11] = value[3]      #Localização
+            # mesg[12] = value[4]      #Direção
+            # mesg[13] = value[5]      #RpmEsq
+            # mesg[14] = value[6]      #RpmDir
 
         elif msgCANId == 0x97:
             mesg[0]  = 1
@@ -215,7 +224,8 @@ def sendMsg(s, msgCANId, value):
             mesg[13] = value[1]      #RpmEsq
             mesg[14] = value[2]      #RpmDir
 
-
+        if msgCANId == 0x94:
+            print("EAIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII")
         msg = bytearray(mesg)
 
         s.sendall(msg)
@@ -268,7 +278,7 @@ def logCanPlatoon(s):
 
     msgECU = s.recv(14)
 
-    if msgECU[2] == 0x93:
+    if msgECU[2] == 0x91:
         log['SOFTWARE'] = 'GROJOBA'
         log['ID'] = msgECU[6]
         log['Role'] = msgECU[7]
