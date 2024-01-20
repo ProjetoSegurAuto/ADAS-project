@@ -12,7 +12,7 @@ class controllerFuzzy():
         self.erro_NG = fuzz.trapmf(self.erro, [-100, -100, -80, -40])
         self.erro_NM = fuzz.trimf(self.erro, [-60, -40, -20])
         self.erro_NP = fuzz.trimf(self.erro, [-40, -20, 0])
-        self.erro_Z = fuzz.trimf(self.erro, [-5, 0, 5])
+        self.erro_Z = fuzz.trimf(self.erro, [-10, 0, 10])
         self.erro_PP = fuzz.trimf(self.erro, [0, 20, 40])
         self.erro_PM = fuzz.trimf(self.erro, [20, 40, 60])
         self.erro_PG = fuzz.trapmf(self.erro, [40, 80, 100, 100])
@@ -20,7 +20,7 @@ class controllerFuzzy():
         self.derivada_erro_NG = fuzz.trapmf(self.derivada_erro, [-100, -100, -80, -40])
         self.derivada_erro_NM = fuzz.trimf(self.derivada_erro, [-60, -40, -20])
         self.derivada_erro_NP = fuzz.trimf(self.derivada_erro, [-40, -20, 0])
-        self.derivada_erro_Z = fuzz.trimf(self.derivada_erro, [-5, 0, 5])
+        self.derivada_erro_Z = fuzz.trimf(self.derivada_erro, [-10, 0, 10])
         self.derivada_erro_PP = fuzz.trimf(self.derivada_erro, [0, 20, 40])
         self.derivada_erro_PM = fuzz.trimf(self.derivada_erro, [20, 40, 60])
         self.derivada_erro_PG = fuzz.trapmf(self.derivada_erro, [40, 80, 100, 100])
@@ -28,7 +28,7 @@ class controllerFuzzy():
         self.deltaVel_NG = fuzz.trapmf(self.deltaVel, [-100, -100, -80, -40])
         self.deltaVel_NM = fuzz.trimf(self.deltaVel, [-60, -40, -20])
         self.deltaVel_NP = fuzz.trimf(self.deltaVel, [-40, -20, 0])
-        self.deltaVel_Z = fuzz.trimf(self.deltaVel, [-5, 0, 5])
+        self.deltaVel_Z = fuzz.trimf(self.deltaVel, [-2, 0, 2])
         self.deltaVel_PP = fuzz.trimf(self.deltaVel, [0, 20, 40])
         self.deltaVel_PM = fuzz.trimf(self.deltaVel, [20, 40, 60])
         self.deltaVel_PG = fuzz.trapmf(self.deltaVel, [40, 80, 100, 100])
@@ -144,8 +144,8 @@ class controllerFuzzy():
         elif dErro > self.derivada_erro[-1]:
             dErro = self.derivada_erro[-1]
 
-        erro = int(erro)
-        dErro = int(dErro)
+        erro = int(erro/5)
+        dErro = int(dErro/200)
         
         saida_ms = self.defuzzyficacao(self.inferencia(self.fuzzyficacao(erro, dErro)))/100
         print(saida_ms)

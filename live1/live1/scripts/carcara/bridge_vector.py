@@ -21,7 +21,7 @@ class Bridge():
         self.pubCAN1 = rospy.Publisher('TPC10Bridge', Float64MultiArray , queue_size=1)
         
     def pubCANMessage(self, can_message):
-        self.__can_message.data = can_message#can_message 
+        self.__can_message.data = can_message #can_message 
         #print("mandei: ",end='')
         #print(self.__can_message)
         self.pubCAN.publish(self.__can_message)
@@ -43,19 +43,20 @@ class Bridge():
 
 def main():
     #Setup ROS
-    rospy.init_node('bridge-communication')                #inicia o Node
+    rospy.init_node('bridgeCommunication')                #inicia o Node
     rospy.loginfo('the node bridge beetwen Orin and Vector Can-Bus was started!')
     
     #setup
     object_vector = Bridge()
-    
     older_can_msg = list()
 
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
-            #recebimento [CAN -> ORIN]       
+            #recebimento [CAN -> ORIN]    
+            data_logger = list()   
             data_logger = vc.logCAN(object_vector.socket)
+           
             if(len(data_logger) > 0 and older_can_msg != data_logger):
                 object_vector.pubCANMessage(data_logger)
                 older_can_msg = data_logger

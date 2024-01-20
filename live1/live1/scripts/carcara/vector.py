@@ -5,6 +5,8 @@ import arithmetic_things as AT
 log = {}
 
 def logCAN(s) -> list:
+    log = {}
+    msgECU = list()
     msgECU = s.recv(14)
     
     if msgECU[2] == 0x80:
@@ -100,12 +102,11 @@ def logCAN(s) -> list:
         log['Action'] = msgECU[4] 
 
     ans = list()
-
     ans.append(float(msgECU[2]))
 
-    retorno = ""
+    #retorno = ""
     for l in log:
-        retorno = retorno + "{}: {} | ".format(l, log[l])
+        #retorno = retorno + "{}: {} | ".format(l, log[l])
         if(AT.isnumber(log[l])):
             ans.append(float(log[l]))
 
