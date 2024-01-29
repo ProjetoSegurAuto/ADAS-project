@@ -70,7 +70,9 @@ def main():
                 nodeModeling.setFlagLogger(False)
                 
                 #rever a separação da msg
-                if (hex(int(can_msg[0])) == '0x93'):
+                if (hex(int(can_msg[0])) == '0x98'):
+                    
+                    #print(can_msg)
                     curr_node = int(can_msg[1])
                     curr_pos = int(can_msg[2]) 
                     curr_action = int(can_msg[3])
@@ -87,9 +89,9 @@ def main():
                         last_node = curr_node
                         last_pos = curr_pos
                         last_action = curr_action
-                
-                can_msg.clear()
 
+                can_msg.clear()
+                
             #envia para o DM o pai
             nodeModeling.pubMsgLeader(dsu_.dsFind(MY_ID))          
         except Exception as e: 

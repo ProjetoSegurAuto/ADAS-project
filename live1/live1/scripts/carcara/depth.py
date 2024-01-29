@@ -74,8 +74,8 @@ class Depth():
     def getDistanceMin(self, depth, nave):
 
         self.recorte = np.where(nave[:600, :], depth[:600, :], math.inf)
-        #self.recorte = depth[240:480,320:960].copy()         #Faz um recorte da image, analisa apenas uma parte da imagem (retangulo)
-        distanciaMin = np.nanmin(self.recorte)               #Pega a menir idstancia sem ser um nan    
+        #self.recorte = depth[240:480,320:960].copy()        #Faz um recorte da image, analisa apenas uma parte da imagem (retangulo)
+        distanciaMin = np.nanmin(self.recorte)               #Pega a menor distancia sem ser um nan    
         #print(distanciaMin)
         return distanciaMin
     
@@ -92,7 +92,7 @@ class Depth():
         gray = cv2.cvtColor(nave, cv2.COLOR_GRAY2BGR)
         # Find Canny edges
         edged = cv2.Canny(gray, 30, 200)
-        cv2.imshow('Canny Edges After Contouring', edged)
+        #cv2.imshow('Canny Edges After Contouring', edged)
         # Finding Contours
         # Use a copy of the image e.g. edged.copy()
         # since findContours alters the image
@@ -121,7 +121,7 @@ class Depth():
 def main():
     #Setup ROS
     rospy.init_node('Depth')                #inicia o Node
-    rospy.loginfo('O node depth foi iniciado!')
+    rospy.loginfo('O node Depth foi iniciado!')
 
     nodeDepth = NodeDepth()                 #instanciando o objeto do No ros
     depthobj = Depth()                      #instanciando o objeto da profundidade
@@ -147,7 +147,8 @@ def main():
                 nodeDepth.pubMsgDepth(distancia)          
             
             except Exception as e: 
-                print(e)
+                #print(e)
+                pass
 
 if __name__ == "__main__":
     main()

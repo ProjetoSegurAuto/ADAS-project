@@ -56,7 +56,7 @@ class NodeYOLO():
     
     #Detecta objetos na imagem
     def getObjetcs(self, image):
-        results = self.model.predict(image, conf=0.7)  
+        results = self.model.predict(image, conf=0.7, verbose=False)  
         objectsYOLO = {}
         objectYOLO = {
             "classId": 0,
@@ -120,8 +120,8 @@ def main():
 
                 gc.collect()
             except Exception as ex:
-                print("Exception: {}".format(ex))
-                #break
+                #print("Exception: {}".format(ex))
+                pass
 
     rospy.spin()
 

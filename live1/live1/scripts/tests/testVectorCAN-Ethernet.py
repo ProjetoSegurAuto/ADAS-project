@@ -1,22 +1,22 @@
 import time
-import vector as vc
+import vector_teste as vc
 
 #HOST = "192.168.1.101"  # Standard loopback interface address (localhost)
 #PORT = 2323  # Port to listen on (non-privileged ports are > 1023)
 
 s = vc.openSocket()
-print(s)
+#print(s)
 tSendMsgCAN = time.time()  
-angDir = 1
-rpmCan = 0
+angDir = 25
+rpmCan = 30
 
 while True:
         try: 
                 if 0.05 < time.time() - tSendMsgCAN:
-                        #msgCanId = 0x56
-                        #param = [1, rpmCan, 1, rpmCan]
-                        msgCanId = 0x82
-                        param = [angDir]
+                        msgCanId = 0x56
+                        param = [1, rpmCan, 1, rpmCan]
+                        #msgCanId = 0x82
+                        #param = [angDir]
                         #msgCanId = 0x94
                         #param = [3, 0, 0, 0, angDir, rpmCan, rpmCan]
                         #print(param)

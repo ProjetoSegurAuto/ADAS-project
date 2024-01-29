@@ -93,8 +93,8 @@ class LaneWarp():
         # src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
         # dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
 
-        src = np.float32([[0, height], [width, height], [
-                         210, 530], [(width-235), 530]])
+        #src = np.float32([[0, height], [width, height], [210, 530], [(width-235), 530]])
+        src = np.float32([[0, height], [width, height], [210, 450], [(width-235), 450]])
         dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
 
         img = imagem
@@ -117,9 +117,11 @@ class LaneWarp():
         blurred = cv2.GaussianBlur(img_v, (7, 7), 0)
 
         # (T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
-        # (T, thresh) = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY_INV) #indoor
-        (T, thresh) = cv2.threshold(blurred, 122, 255, cv2.THRESH_BINARY_INV)  # indoor
-        # (T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        #(T, thresh) = cv2.threshold(blurred, 102, 255, cv2.THRESH_BINARY_INV) #indoor 12-14hrs
+        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV)   #indoor
+        #(T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        
 
         kernel = np.ones((7, 7), np.uint8)
         img_dilate = cv2.dilate(thresh, kernel, iterations=1)
@@ -273,7 +275,7 @@ class LaneWarp():
                 right_fit[1] * ploty + right_fit[2]
         except TypeError:
             # Avoids an error if `left` and `right_fit` are still none or incorrect
-            print('The function failed to fit a line!')
+            #print('The function failed to fit a line!')
             left_fitx = 1 * ploty ** 2 + 1 * ploty
             right_fitx = 1 * ploty ** 2 + 1 * ploty
 
@@ -342,7 +344,7 @@ class LaneWarp():
     def evaluate_trajectory_quality(self, center_lane_positions, left_lane_positions=None, right_lane_positions=None, previous_center_lane_positions=None):
     
         MIN_DISTANCE = 100
-        print(center_lane_positions)
+        #print(center_lane_positions)
         
         #for i in range(len(center_lane_positions)):
             #center_x, center_y = center_lane_positions[i]
@@ -356,13 +358,13 @@ class LaneWarp():
             right_x = right_lane_positions
             left_distance = abs(center_x - left_x)
             right_distance = abs(center_x - right_x)
-            print('distancia x da linha da direita: {}'.format(right_distance))
-            print('distancia x da linha da esquerda: {}'.format(left_distance))
+            #print('distancia x da linha da direita: {}'.format(right_distance))
+            #print('distancia x da linha da esquerda: {}'.format(left_distance))
             
         if left_distance < MIN_DISTANCE or right_distance < MIN_DISTANCE:
-            print('False')
+            #print('False')
             return False
-        print('True')
+        #print('True')
         return True
 
     def measure_position_meters(self, binary_warped, left_fit, right_fit, gja_center_lane_positions=None):
@@ -378,8 +380,8 @@ class LaneWarp():
             right_x_pos = right_fit[0] * y ** 2 + \
                 right_fit[1] * y + right_fit[2]
             
-            print('posição x da linha da direita: {}'.format(right_x_pos))
-            print('posição x da linha da esqeurda: {}'.format(left_x_pos))
+            #print('posição x da linha da direita: {}'.format(right_x_pos))
+            #print('posição x da linha da esqeurda: {}'.format(left_x_pos))
             center_lane_x_pos = (left_x_pos + right_x_pos) // 2
             if self.evaluate_trajectory_quality(center_lane_x_pos, left_lane_positions=left_x_pos, right_lane_positions=right_x_pos) == True: 
                 self.center_lane_positions.append((center_lane_x_pos, y))
@@ -615,11 +617,11 @@ class LaneWarp():
         NodeRos.msgLKAresult = NodeRos.bridge.cv2_to_imgmsg(out_img, "8UC3")
         NodeRos.pubLKAresult.publish(NodeRos.msgLKAresult)
 
-        cv2.imshow('resultado', out_img)
-        cv2.imshow('roi', laneValid)
+        #cv2.imshow('resultado', out_img)
+        #cv2.imshow('roi', laneValid)
         # cv2.imshow('Poly Lines', self.draw_poly_lines(img_bin, left_fitx, right_fitx, ploty))
         # cv2.imwrite('resultado_'+str(i)+'.jpg', out_img)
-        cv2.waitKey(1)
+        #cv2.waitKey(1)
 
 
 def main():
@@ -639,8 +641,8 @@ def main():
                 print("Exception: {}".format(ex))
                 pass
 
-            except KeyboardInterrupt:
-                print("Exception: KeyboardInterrupt Lane")
+            #except KeyboardInterrupt:
+            #    print("Exception: KeyboardInterrupt Lane")
 
 
 if (__name__ == "__main__"):

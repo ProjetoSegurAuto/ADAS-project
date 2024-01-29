@@ -1,6 +1,6 @@
 import socket
 import time
-import arithmetic_things as AT
+import arithmetic_things_teste as AT
 
 log = {}
 
