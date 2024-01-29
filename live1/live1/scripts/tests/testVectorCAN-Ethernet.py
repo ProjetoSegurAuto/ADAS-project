@@ -1,14 +1,14 @@
 import time
-import vector as vc
+import vector_teste as vc
 
 #HOST = "192.168.1.101"  # Standard loopback interface address (localhost)
 #PORT = 2323  # Port to listen on (non-privileged ports are > 1023)
 
 s = vc.openSocket()
-print(s)
+#print(s)
 tSendMsgCAN = time.time()  
-angDir = 1
-rpmCan = 20
+angDir = 25
+rpmCan = 30
 
 while True:
         try: 

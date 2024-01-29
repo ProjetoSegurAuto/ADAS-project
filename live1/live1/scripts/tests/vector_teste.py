@@ -1,12 +1,12 @@
 import socket
 import time
-import arithmetic_things as AT
+import arithmetic_things_teste as AT
 
 log = {}
 
 def logCAN(s) -> list:
     msgECU = s.recv(14)
-    
+    log = {}
     if msgECU[2] == 0x80:
         log['ECU'] = 'Direcao'
         log['Angulo'] = msgECU[9]
@@ -103,9 +103,9 @@ def logCAN(s) -> list:
 
     ans.append(float(msgECU[2]))
 
-    retorno = ""
+    #retorno = ""
     for l in log:
-        retorno = retorno + "{}: {} | ".format(l, log[l])
+        #retorno = retorno + "{}: {} | ".format(l, log[l])
         if(AT.isnumber(log[l])):
             ans.append(float(log[l]))
 

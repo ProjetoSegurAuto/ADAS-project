@@ -144,7 +144,7 @@ class controllerFuzzy():
         elif dErro > self.derivada_erro[-1]:
             dErro = self.derivada_erro[-1]
 
-        erro = int(erro/5)
+        erro = int(erro/10)
         dErro = int(dErro/200)
         
         saida_ms = self.defuzzyficacao(self.inferencia(self.fuzzyficacao(erro, dErro)))/100

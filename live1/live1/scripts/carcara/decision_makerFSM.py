@@ -36,12 +36,13 @@ depth_list = []
 '''
 Definição das constantes
 '''
+
 RPM_INIT = 40
 ANGLE_INIT = 25
 STATE_INIT = 0
-GAP_INIT = 1.1
-DISTANCE_ACC = 1.35 
-DISTANCE_STOP = 0.75 #0.8
+GAP_INIT = 1.4
+DISTANCE_ACC = 1.7
+DISTANCE_STOP =  0.9
 TIME_CAN = 0.01 #0.001 Intervalo de tempo para envio de msg na CAN
 
 class NodeDecisionMaker:
@@ -96,7 +97,7 @@ class NodeDecisionMaker:
     def callback_logger(self, can_message):
         self.__flag_receive_can_msg = True
         self.__can_message = list(can_message.data)
-        #sprint("self.__can_message: {}".format(self.__can_message))
+        print("callback_logger: {}".format(can_message))
     
     def getCANMessage(self):
         return self.__can_message
@@ -110,6 +111,7 @@ class NodeDecisionMaker:
         global flag_break_yolo, can_id, can_params
         flag_break_yolo = False
         for object in json_object_yolo:
+            print(json_object_yolo[object])
             if json_object_yolo[object]['classId'] == "stop sign":
                 #print("FREIA PID - Placa PARE")
                 flag_break_yolo = True
@@ -238,38 +240,39 @@ class DecisionMakerFSM:
                 param = [ang_dir, msg_can_id]
                 node_decision_maker.pubOrinToInfra(param)
                 
+                can_msg = list()
                 can_msg = node_decision_maker.getCANMessage()
                 print("CAN MSG: {}".format(can_msg))
                 if(len(can_msg) and hex(int(can_msg[0])) == '0x50'):
                     rpm_left = can_msg[3]
                     rpm_right = can_msg[5]
-                    rpm_mean = int((rpm_left + rpm_right)/2)
-                    print("RPM LEFT: {}".format(rpm_left))
+                    
+                    if(abs(rpm_left-rpm_right) < 5):
 
-                    erro = (node_decision_maker.msg_depth - self.gap)*100
-                    self.ACC_bufferError[0] = self.ACC_bufferError[1]
-                    self.ACC_bufferError[1] = erro
-                    dErro = (self.ACC_bufferError[1] - self.ACC_bufferError[0])/(self.ACC_bufferTime[1] - self.ACC_bufferTime[0])
-                    rpm_acc = int(self.acc.controller(erro, dErro))
-                    self.rpm_can_acc = rpm_mean + rpm_acc
-                    if self.rpm_can_acc > 40:
-                        self.rpm_can_acc = 40
-                    elif self.rpm_can_acc < 30:
-                        self.rpm_can_acc = 30
-                        
-                    msg_can_id = 0x56
-                    param = [1, self.rpm_can_acc, 1, self.rpm_can_acc, msg_can_id]
-                    node_decision_maker.pubOrinToInfra(param)
+                        rpm_mean = int((rpm_left + rpm_right)/2)
+                        print("RPM MEAN: {}".format(rpm_mean))
 
-                    ang_dir = node_decision_maker.msg_steering
-                    msg_can_id = 0x82
-                    param = [ang_dir, msg_can_id]
-                    node_decision_maker.pubOrinToInfra(param)
+                        erro = (node_decision_maker.msg_depth - self.gap)*100
+                        self.ACC_bufferError[0] = self.ACC_bufferError[1]
+                        self.ACC_bufferError[1] = erro
+                        dErro = (self.ACC_bufferError[1] - self.ACC_bufferError[0])/(self.ACC_bufferTime[1] - self.ACC_bufferTime[0])
+                        rpm_acc = int(self.acc.controller(erro, dErro))
+                        self.rpm_can_acc = rpm_mean + rpm_acc
+                        if self.rpm_can_acc > 35:
+                            self.rpm_can_acc = 35
+                        elif self.rpm_can_acc < 25:
+                            self.rpm_can_acc = 25
+                            
+                        msg_can_id = 0x56
+                        param = [1, self.rpm_can_acc, 1, self.rpm_can_acc, msg_can_id]
+                        print("RPM CAN: {}".format(self.rpm_can_acc))
+                        node_decision_maker.pubOrinToInfra(param)
 
-                    linha_arquivo =[[time.time(), node_decision_maker.msg_depth, erro, dErro, rpm_acc, rpm_mean, self.rpm_can_acc]]
-                    columns = ['time', 'distance', 'error', 'dError', 'out_acc(rpm)', 'rpm_mean' ,'rpm_can']
-                    #print(linha_arquivo)
-                    log.save_dataframe_to_csv(linha_arquivo, columns)
+
+                        linha_arquivo =[[time.time(), node_decision_maker.msg_depth, erro, dErro, rpm_acc, rpm_mean, self.rpm_can_acc]]
+                        columns = ['time', 'distance', 'error', 'dError', 'out_acc(rpm)', 'rpm_mean' ,'rpm_can']
+                        #print(linha_arquivo)
+                        log.save_dataframe_to_csv(linha_arquivo, columns)
                     
                 else:
                     del can_msg[:]

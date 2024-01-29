@@ -93,8 +93,8 @@ class LaneWarp():
         # src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
         # dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
 
-        src = np.float32([[0, height], [width, height], [
-                         210, 530], [(width-235), 530]])
+        #src = np.float32([[0, height], [width, height], [210, 530], [(width-235), 530]])
+        src = np.float32([[0, height], [width, height], [210, 450], [(width-235), 450]])
         dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
 
         img = imagem
@@ -118,8 +118,10 @@ class LaneWarp():
 
         # (T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         #(T, thresh) = cv2.threshold(blurred, 102, 255, cv2.THRESH_BINARY_INV) #indoor 12-14hrs
-        # (T, thresh) = cv2.threshold(blurred, 122, 255, cv2.THRESH_BINARY_INV)   #indoor
-        (T, thresh) = cv2.threshold(blurred, 118, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV)   #indoor
+        #(T, thresh) = cv2.threshold(blurred, 124, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        
 
         kernel = np.ones((7, 7), np.uint8)
         img_dilate = cv2.dilate(thresh, kernel, iterations=1)

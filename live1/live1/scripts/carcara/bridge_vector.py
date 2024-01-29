@@ -21,7 +21,8 @@ class Bridge():
         self.pubCAN1 = rospy.Publisher('TPC10Bridge', Float64MultiArray , queue_size=1)
         
     def pubCANMessage(self, can_message):
-        self.__can_message.data = can_message #can_message 
+        self.__can_message = Float64MultiArray()
+        self.__can_message.data = can_message#can_message 
         #print("mandei: ",end='')
         #print(self.__can_message)
         self.pubCAN.publish(self.__can_message)
@@ -30,7 +31,12 @@ class Bridge():
     def callBackDataFromOrin(self, orin_message):
         #print("callBackDataFromOrin")
         self.__flagReceive = True
+        self.__orin_message = Int64MultiArray()
         self.__orin_message = orin_message
+        curr_data = list()
+        curr_data = list(self.__orin_message.data)
+        print("[ORIN -> CAN]: {}".format(curr_data))
+        vc.sendMsg(self.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
 
     def getDataFromOrin(self) -> list:
         return list(self.__orin_message.data)
@@ -43,30 +49,31 @@ class Bridge():
 
 def main():
     #Setup ROS
-    rospy.init_node('bridgeCommunication')                #inicia o Node
+    rospy.init_node('bridge-communication')                #inicia o Node
     rospy.loginfo('the node bridge beetwen Orin and Vector Can-Bus was started!')
     
     #setup
     object_vector = Bridge()
+    
     older_can_msg = list()
 
     #loop
     while not rospy.is_shutdown():          #Enquanto o ros não for fechado
         try:
-            #recebimento [CAN -> ORIN]    
-            data_logger = list()   
+            #envio [ORIN -> CAN]
+            #if(object_vector.getFlagReceiveMessage()):
+            #    curr_data = list()
+            #    curr_data = object_vector.getDataFromOrin()
+            #    print("[ORIN -> CAN]: {}".format(curr_data))
+            #    vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
+            #    object_vector.setFlagReceiveMessage(False)
+
+            #recebimento [CAN -> ORIN]  
+            data_logger = list()     
             data_logger = vc.logCAN(object_vector.socket)
-           
             if(len(data_logger) > 0 and older_can_msg != data_logger):
                 object_vector.pubCANMessage(data_logger)
                 older_can_msg = data_logger
-
-            #envio [ORIN -> CAN]
-            if(object_vector.getFlagReceiveMessage()):
-                curr_data = object_vector.getDataFromOrin()
-                print(curr_data)
-                vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
-                object_vector.setFlagReceiveMessage(False)
 
         except Exception as e: 
             print(e) 
