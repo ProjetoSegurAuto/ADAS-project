@@ -14,6 +14,7 @@ import ast
 import gc
 import acc
 import log
+import pygame
 
 '''
 Definição das variáveis globais
@@ -36,7 +37,8 @@ depth_list = []
 '''
 Definição das constantes
 '''
-
+ID_CAR = 3
+ROLE = 0 #father = 0  ou son = 1
 RPM_INIT = 40
 ANGLE_INIT = 25
 STATE_INIT = 0
@@ -44,6 +46,9 @@ GAP_INIT = 1.4
 DISTANCE_ACC = 1.7
 DISTANCE_STOP =  0.9
 TIME_CAN = 0.01 #0.001 Intervalo de tempo para envio de msg na CAN
+
+GAP_INCREMENT = 20
+GAP_DECREMENT = 20
 
 class NodeDecisionMaker:
     def __init__(self):
@@ -163,7 +168,8 @@ class DecisionMakerFSM:
             2: lambda: 1 if not flag_break_aeb and not flag_break_yolo and not flag_acc else ( 3 if not flag_break_aeb and not flag_break_yolo and flag_acc else 2),
             3: lambda: 2 if flag_break_aeb or flag_break_yolo else (1 if not flag_acc else 3)
         } 
-        
+
+        self.role = ROLE        
         self.gap = GAP_INIT
         self.state = STATE_INIT
         self.rpm_init = RPM_INIT 
@@ -177,12 +183,25 @@ class DecisionMakerFSM:
        
         self.acc = acc.controllerFuzzy() 
 
+    def adjust_gap(self, event):
+        global GAP_INIT
+        if self.ROLE == 0  and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                GAP_INIT += GAP_INCREMENT
+                print("gap atualizado para:", GAP_INIT)
+            elif event.key == pygame.K_DOWN:
+                GAP_INIT = max(0, GAP_INIT - GAP_DECREMENT)
+                print("gap atualizado para:", GAP_INIT)
+
     def update_state(self, node_decision_maker):
         self.state = self.state_transitions[self.state]()
         self.actions(node_decision_maker)
 
     def actions(self, node_decision_maker):
         global flag_vehicle_can_init, depth_list
+
+        for event in pygame.event.get():
+            self.adjust_gap(event)
 
         if self.state == 0:
             if flag_vehicle_position_received and flag_steering_received and flag_curve_radius_received and flag_distance_received and flag_object_yolo_received:
@@ -205,6 +224,8 @@ class DecisionMakerFSM:
 
         elif self.state == 1:
             #print("Estado: {}. Seguindo as faixas".format(self.dic_states[self.state]))
+            self.gap = GAP_INIT
+
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
                 
@@ -217,6 +238,10 @@ class DecisionMakerFSM:
 
                 msg_can_id = 0x56
                 param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
+                node_decision_maker.pubOrinToInfra(param)
+
+                msg_can_id = 0x90 #envia 90 e recebe 91
+                param = [ID_CAR, self.gap, 69, 70, ang_dir, self.rpm_can, self.rpm_can, self.rpm_can, msg_can_id]
                 node_decision_maker.pubOrinToInfra(param)
 
         elif self.state == 2:
