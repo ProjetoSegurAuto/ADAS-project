@@ -60,8 +60,8 @@ def main():
             #envio [ORIN -> CAN] | [ORIN -> COHDA]
             if(object_vector.getFlagReceiveMessage()):
                 curr_data = object_vector.getDataFromOrin()
-                if(curr_data[len(curr_data)-1] < 0x90):
-                    vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
+                print(f"dado pra ser enviado: {curr_data}")
+                vc.sendMsg(object_vector.socket, curr_data[len(curr_data)-1], curr_data[:len(curr_data)-1])
                     
 
         except Exception as e: 
