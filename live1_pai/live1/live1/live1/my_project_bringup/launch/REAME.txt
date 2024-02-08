@@ -1,0 +1,2 @@
+# Excutar comando abaixo
+roslaunch my_project_bringup live1.launch
