@@ -1,0 +1,6 @@
+verificar a detecção de qrcodes no qrcode.py
+Verificar a necessidade do signDetection.py
+Verificar qual o codigo funcional video_output.py ou output_video.py
+Excluir o objectdetection.py yolo.py
+Ajustar detectnetv2.py para nosso padrão de no
+Modificar o dashbord.py para aceitar a saida do detectnetv2.py ao inves da yolo.py
