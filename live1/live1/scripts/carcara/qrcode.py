@@ -107,8 +107,8 @@ def main():
 
         if(flagImageReceived & flagDepthReceived):
             try:
-                #cv2.imshow('Image',frame)
-                #cv2.waitKey(1)
+                cv2.imshow('Image',frame)
+                cv2.waitKey(1)
                 qcd = cv2.QRCodeDetector()              #instancia um objeto para
 
                 retval, decoded_info, points, straight_qrcode = qcd.detectAndDecodeMulti(frame)         #detecta e decodifica multiplos qrCodes
@@ -116,15 +116,16 @@ def main():
                 if(retval):         #Se a camera encontrar um qr code na imagem
                     if(decoded_info[0]=='HIGIENE'):
                         distanciaMin = plates.getDistance(points,depth)        #printa os pontos do qrcode
+                        print(distanciaMin)
                         if(distanciaMin[0] >= 0.4):
-                            print("QR code: ",decoded_info[0], " Identificado pode inicar o trajeto!")
+                            #print("QR code: ",decoded_info[0], " Identificado pode inicar o trajeto!")
                             nodeplates.msgQRCode.data = 1.0
                             nodeplates.pubQRCode.publish(nodeplates.msgQRCode)
-                            # img = cv2.polylines(frame, points.astype(int), True, (0, 255, 0), 3)       #Desenha uma caixa no ao redor do qrcode
+                            img = cv2.polylines(frame, points.astype(int), True, (0, 255, 0), 3)       #Desenha uma caixa no ao redor do qrcode
                     
-                            # frame = cv2.addWeighted(frame, 1.0, img, 0.5, 0)                #sobrepõe as imagem
-                            # cv2.imshow('ImageQR',frame)
-                            # cv2.waitKey(1)
+                            frame = cv2.addWeighted(frame, 1.0, img, 0.5, 0)                #sobrepõe as imagem
+                            cv2.imshow('ImageQR',frame)
+                            cv2.waitKey(1)
             except Exception as ex:
                 print("Exception: {}".format(ex))
                 pass

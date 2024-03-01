@@ -6,8 +6,10 @@ from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithP
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
+import math
 import jetson.inference
 import jetson.utils
+
 
 flagDepthReceived = False
 
@@ -17,34 +19,40 @@ class DetectNetNode:
         rospy.loginfo('DetectNet node initialized')
 
         self.depth = Image() 
-        self.bridgeDepth = CvBridge() 
+        self.nave = Image() 
         self.bridge = CvBridge()
-
-        self.net = jetson.inference.detectNet("ssd-mobilenet-v2", threshold=0.5)
-
+        #https://github.com/dusty-nv/jetson-inference/blob/master/docs/detectnet-console-2.md
+        self.net = jetson.inference.detectNet("trafficcamnet", threshold=0.5)#trafficcamnet #ssd-mobilenet-v2
+        
         self.detection_pub = rospy.Publisher('detections', Detection2DArray, queue_size=25)
         self.image_pub = rospy.Publisher('detections_with_boxes', Image, queue_size=25)
 
+
+        #self.net = jetson.inference.segNet('ffcn-resnet18-deepscene-576x320')
+
         self.image_sub = rospy.Subscriber('TPC1Camera', Image, self.image_callback)
         self.subImage = rospy.Subscriber('TPC2Depth', Image, self.callbackDepth)
+        self.subNave = rospy.Subscriber('TPC8LKAnave', Image, self.callbackNave)
 
         #callback da profundidade
     def callbackDepth(self, msg_depth):
         global flagDepthReceived
         flagDepthReceived = True
-        self.depth = self.bridgeDepth.imgmsg_to_cv2(msg_depth,'32FC1')  
+        self.depth = self.bridge.imgmsg_to_cv2(msg_depth,'32FC1')  
 
-    def getDistance(self, coords):
-        distancia = 0
-        if(flagDepthReceived):
-            x, y = coords
-            depth_array = np.array(self.depth)
-            distancia = depth_array[int(y), int(x)]
-            if(distancia < 0):
-                distancia = 0
- 
-        return distancia
-    
+    def callbackNave(self, msg_nave):
+        global flagNaveReceived
+        flagNaveReceived = True            #Ativa a flag que indica o recebimento da mensagem
+        self.nave = self.bridge.imgmsg_to_cv2(msg_nave,'32FC1')         #preenche a variavel global com a informacao
+
+    #pega a distancia do ponto mais próximo
+    def getDistance(self, object):
+
+        self.recorte = np.where(object[:, :], self.depth[:, :], math.inf)
+        distanciaMin = np.nanmin(self.recorte)     
+        
+        return distanciaMin
+        
     def image_callback(self, msg):
         cv_image = self.bridge.imgmsg_to_cv2(msg, "bgra8")
 
@@ -53,15 +61,29 @@ class DetectNetNode:
 
         detections = self.net.Detect(cuda_image, overlay="none")
 
-        for detection in detections:
-            bbox = detection.ROI
-            object_class = (self.net.GetClassLabel(detection.ClassID))
-            cv2.putText(cv_image, object_class, (int(bbox[0])+5, int(bbox[1])-5), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (0, 255, 0), 2, cv2.LINE_AA)
-            cv2.rectangle(cv_image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
-            object_distance = round(self.getDistance(detection.Center), 2)
-            cv2.putText(cv_image, "dist: "+str(object_distance), (int(bbox[0])+5, int(bbox[1])+25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (0, 255, 0), 2, cv2.LINE_AA)
+        if(flagDepthReceived and flagNaveReceived):
 
-        #image back -> ROS format
+            for detection in detections:
+                bbox = detection.ROI
+                object_class = (self.net.GetClassLabel(detection.ClassID))
+                
+                rectangle = np.zeros((self.nave.shape[0], self.nave.shape[1]), dtype="float32")
+                cv2.rectangle(rectangle, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), 255, -1)
+                objectAhead = cv2.bitwise_and(self.nave, rectangle)
+
+                if(objectAhead.max() > 0):
+                    cv2.putText(cv_image, object_class, (int(bbox[0])+5, int(bbox[1])-5), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (0, 255, 0), 2, cv2.LINE_AA)
+                    cv2.rectangle(cv_image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
+                    object_distance = round(self.getDistance(objectAhead), 2)
+                    cv2.putText(cv_image, "dist: "+str(object_distance), (int(bbox[0])+5, int(bbox[1])+25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (0, 255, 0), 2, cv2.LINE_AA)
+                    x, y = detection.Center
+                    cv2.circle(cv_image, [int(x), int(y)], 10, (255, 0, 0), 5)
+                    
+
+            #image back -> ROS format
+            #cv2.imshow('Nave', self.nave)
+            #cv2.waitKey(1)        
+   
         img_msg = self.bridge.cv2_to_imgmsg(cv_image, "bgra8")
 
         self.image_pub.publish(img_msg)

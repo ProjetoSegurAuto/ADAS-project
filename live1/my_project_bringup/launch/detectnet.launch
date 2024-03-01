@@ -1,0 +1,7 @@
+<launch>
+    <!--para o live1-->
+    <node name="camera_zed" pkg="live1" type="camera_zed.py" output="screen"/>
+    <node name="depth" pkg="live1" type="depth.py" output="screen"/>
+    <node name="detectnet" pkg="live1" type="detectnet.py" output="screen"/>
+    <node name="detectnet_output" pkg="live1" type="detectnet_output.py" output="screen"/> 
+</launch>

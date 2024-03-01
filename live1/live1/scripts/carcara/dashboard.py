@@ -15,6 +15,7 @@ from cv_bridge import CvBridge, CvBridgeError
 flagLKAroi = False  # variável global para garantir que o tratamento da imagem so ira começar se tiver recebido imagem
 flagLKAresult = False
 flagImgYolo = False
+flagImgDetectNet = False
 
 
 class NodeDashboard():
@@ -29,13 +30,12 @@ class NodeDashboard():
 
         # self.sub = rospy.Subscriber('TPC1Camera',Image,self.callback)       #inscrição no topico de imagens
         # inscrição no topico de LKA ROI
-        self.subLKAroi = rospy.Subscriber(
-            'TPC6LKAroi', Image, self.callbackROI)
+        self.subLKAroi = rospy.Subscriber('TPC6LKAroi', Image, self.callbackROI)
         # inscrição no topico de LKA resultado
-        self.subLKAresult = rospy.Subscriber(
-            'TPC7LKAresult', Image, self.callbackResult)
-        self.subImgYOLO = rospy.Subscriber(
-            'TPC3ImgYOLO', Image, self.callbackYOLO)  # inscrição no topico de YOLO
+        self.subLKAresult = rospy.Subscriber('TPC7LKAresult', Image, self.callbackResult)
+        self.subImgYOLO = rospy.Subscriber('TPC3ImgYOLO', Image, self.callbackYOLO)  # inscrição no topico de YOLO
+        
+        #self.subImgDetectNet = rospy.Subscriber('detections_with_boxes', Image, self.callbackDetectNet)
 
     def callbackROI(self, msg_roi):
 
@@ -63,6 +63,14 @@ class NodeDashboard():
         # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
         flagImgYolo = True
 
+    def callbackDetectNet(self, msg_img_detectnet):
+
+        # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
+        self.msgDetectNet = self.bridge.imgmsg_to_cv2(msg_img_detectnet, "bgra8")
+
+        global flagImgDetectNet
+        # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
+        flagImgDetectNet = True
 
 class Dashboard():
 
@@ -73,6 +81,7 @@ class Dashboard():
         # I just resized the image to a quarter of its original size
         imageROI = cv2.resize(cv2.cvtColor(imageROI, cv2.COLOR_GRAY2BGR), (0, 0), None, .5, .5)#cv2.resize(imageROI, (0, 0), None, .5, .5)
         imageYolo = cv2.resize(imageYolo, (0, 0), None, .5, .5)
+        #imageDetectNet = cv2.resize(imageDetectNet, (0, 0), None, .5, .5)
         #imageResult = cv2.resize(imageResult, (0, 0), None, .75, .75)
 
         # grey = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -110,8 +119,11 @@ def main():
     while (not rospy.is_shutdown()):
         if (flagLKAroi and flagLKAresult and flagImgYolo):
             try:
-                dashboard.working(nodeDashboard.msgTPC6LKAroi,
-                                  nodeDashboard.msgTPC7LKAresult, nodeDashboard.msgTPC3ImgYOLO)
+                dashboard.working(
+                    nodeDashboard.msgTPC6LKAroi,
+                    nodeDashboard.msgTPC7LKAresult, 
+                    nodeDashboard.msgTPC3ImgYOLO
+                )
 
             except Exception as ex:
                 #print("Exception: {}".format(ex))

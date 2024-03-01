@@ -72,7 +72,7 @@ class NodeDecisionMaker:
         flag_distance_received = True
         self.distance_decision(msg_depth.data)
         self.msg_depth = msg_depth.data
-        print("Distancia: {}".format(msg_depth.data))
+        #print("Distancia: {}".format(msg_depth.data))
 
     def callback_vehicle_position(self, msg_vehicle_position):
         global flag_vehicle_position_received
