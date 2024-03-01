@@ -29,7 +29,7 @@ flag_throttle = True
 flag_break_aeb = False
 flag_break_yolo = False
 flag_acc = False
-platoon_gap = 1.4
+platoon_gap = 1.4 #2 Acarcio
 can_id = 0x00
 can_params = []
 depth_list = []
@@ -42,8 +42,8 @@ RPM_INIT = 40
 ANGLE_INIT = 25
 STATE_INIT = 0
 
-DISTANCE_ACC = 1.6
-DISTANCE_STOP =  0.9
+DISTANCE_ACC = 1.6 #2.5 Acarcio
+DISTANCE_STOP =  0.9 #1.3 Acarcio
 TIME_CAN = 0.01 #0.001 Intervalo de tempo para envio de msg na CAN
 
 class NodeDecisionMaker:
@@ -61,7 +61,7 @@ class NodeDecisionMaker:
         self.sub_vehicle_position = rospy.Subscriber('TPC4VehiclePosition', Float64, self.callback_vehicle_position)
         self.sub_steering = rospy.Subscriber('TPC4Steering', Float64, self.callback_steering)
         self.sub_curve_radius = rospy.Subscriber('TPC5CurveRadius', Float64MultiArray, self.callback_curve_radius)
-        self.sub_object_yolo = rospy.Subscriber('TPC3ObjectYOLO', String, self.callback_object_yolo)
+        self.sub_object_yolo = rospy.Subscriber('ObjectYOLO', String, self.callback_object_yolo)
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
         self.sub_can_message = rospy.Subscriber('TPC10Bridge', Float64MultiArray, self.callback_logger)
         

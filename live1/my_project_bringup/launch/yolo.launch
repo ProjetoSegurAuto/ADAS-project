@@ -1,0 +1,8 @@
+<launch>
+    <!--para o live1-->
+    <node name="camera_zed" pkg="live1" type="camera_zed.py" output="screen"/>
+    <node name="lanewarp" pkg="live1" type="lanewarp_Kf_lane.py" output="screen"/>
+    <node name="yolo" pkg="live1" type="yolo.py" output="screen"/> 
+    <node name="depth" pkg="live1" type="depth.py" output="screen"/>
+    <node name="dashboard" pkg="live1" type="dashboard.py" output="screen"/>
+</launch>

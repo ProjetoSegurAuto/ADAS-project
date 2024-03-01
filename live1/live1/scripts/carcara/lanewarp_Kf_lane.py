@@ -483,7 +483,7 @@ def main():
 
             except Exception as ex:
                 print("Exception: {}".format(ex))
-                pass
+                #pass
 
             #except KeyboardInterrupt:
             #    print("Exception: KeyboardInterrupt Lane")

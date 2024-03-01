@@ -19,9 +19,6 @@ class DetectNetNode:
 
         #https://github.com/dusty-nv/jetson-inference/blob/master/docs/detectnet-console-2.md
         self.net = jetson.inference.detectNet("trafficcamnet", threshold=0.5)#trafficcamnet #ssd-mobilenet-v2
-        
-        self.detection_pub = rospy.Publisher('detections', Detection2DArray, queue_size=25)
-        self.image_pub = rospy.Publisher('detections_with_boxes', Image, queue_size=25)
 
         ##Recebe uma imagem
         self.image = Image()      
@@ -35,10 +32,10 @@ class DetectNetNode:
 
         #recebimento de mensagens
         self.subImage = rospy.Subscriber('TPC1Camera', Image, self.callbackImage)
-        self.subDepth = rospy.Subscriber('TPC2Depth', Image, self.callbackDepth)
+        #self.subDepth = rospy.Subscriber('TPC2Depth', Image, self.callbackDepth)
 
         #publicação 
-        self.pubImgDetectnet = rospy.Publisher('ImgDetectnet', Image, queue_size=1)           #guarda os parametros para o envio da imagem da Detectnet
+        #self.pubImgDetectnet = rospy.Publisher('ImgDetectnet', Image, queue_size=1)           #guarda os parametros para o envio da imagem da Detectnet
         self.pubObjectDetectnet = rospy.Publisher('ObjectDetectnet', String, queue_size=1)         #guarda os parametros para o envio das informações da Detectnet
     
     #callback da profundidade
@@ -68,12 +65,12 @@ class DetectNetNode:
             objectDetectnet["coords"]  = [int(i) for i in detection.ROI] 
             objectDetectnet["center"]  = [int(i) for i in detection.Center]
             objectDetectnet["conf"]    = detection.Confidence
-            objectDetectnet["distance"] = round(self.getDistance(objectDetectnet["coords"]), 2)
+            #objectDetectnet["distance"] = round(self.getDistance(objectDetectnet["coords"]), 2)
             
             objectDetectnetID = objectDetectnetID + 1
             objectsDetectnet[str(objectDetectnetID)] = objectDetectnet
 
-            self.getImageDetectnet(objectDetectnet)
+            #self.getImageDetectnet(objectDetectnet)
             
         return str(objectsDetectnet)
 
@@ -102,11 +99,11 @@ class DetectNetNode:
     def callbackImage(self, image):
         self.image = self.bridge.imgmsg_to_cv2(image,'bgra8')
         self.imageDetectnet = self.image
-        if(self.depth is not None):
-            self.objectsDetectnet.data = self.getObjetcs()
-            print(self.objectsDetectnet.data )
-            self.pubObjectDetectnet.publish(self.objectsDetectnet)
-            self.pubImgDetectnet.publish(self.bridge.cv2_to_imgmsg(self.imageDetectnet,"bgra8"))
+        #if(self.depth is not None):
+        self.objectsDetectnet.data = self.getObjetcs()
+        #print(self.objectsDetectnet.data )
+        self.pubObjectDetectnet.publish(self.objectsDetectnet)
+        #self.pubImgDetectnet.publish(self.bridge.cv2_to_imgmsg(self.imageDetectnet,"bgra8"))
         
 if __name__ == '__main__':
     try:

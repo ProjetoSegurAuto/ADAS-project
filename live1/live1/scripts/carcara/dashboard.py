@@ -33,7 +33,7 @@ class NodeDashboard():
         self.subLKAroi = rospy.Subscriber('TPC6LKAroi', Image, self.callbackROI)
         # inscrição no topico de LKA resultado
         self.subLKAresult = rospy.Subscriber('TPC7LKAresult', Image, self.callbackResult)
-        self.subImgYOLO = rospy.Subscriber('TPC3ImgYOLO', Image, self.callbackYOLO)  # inscrição no topico de YOLO
+        self.subImgYOLO = rospy.Subscriber('ImgYOLO', Image, self.callbackYOLO)  # inscrição no topico de YOLO
         
         #self.subImgDetectNet = rospy.Subscriber('detections_with_boxes', Image, self.callbackDetectNet)
 
@@ -126,8 +126,8 @@ def main():
                 )
 
             except Exception as ex:
-                #print("Exception: {}".format(ex))
-                pass
+                print("Exception: {}".format(ex))
+                #pass
 
             #except KeyboardInterrupt:
             #    print("Exception: KeyboardInterrupt Lane")
