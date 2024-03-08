@@ -8,9 +8,9 @@ from cv_bridge import CvBridge
 import cv2
 import gc
 import numpy as np
-import math
 import jetson.inference
 import jetson.utils    
+import ast
 
 class DetectNetNode:
     def __init__(self):
@@ -18,7 +18,7 @@ class DetectNetNode:
         rospy.loginfo('O node Detecnet foi iniciado!')
 
         #https://github.com/dusty-nv/jetson-inference/blob/master/docs/detectnet-console-2.md
-        self.net = jetson.inference.detectNet("trafficcamnet", threshold=0.5)#trafficcamnet #ssd-mobilenet-v2
+        self.net = jetson.inference.detectNet("trafficcamnet", threshold=0.3)#trafficcamnet #ssd-mobilenet-v2
 
         ##Recebe uma imagem
         self.image = Image()      
@@ -35,7 +35,7 @@ class DetectNetNode:
         #self.subDepth = rospy.Subscriber('TPC2Depth', Image, self.callbackDepth)
 
         #publicação 
-        #self.pubImgDetectnet = rospy.Publisher('ImgDetectnet', Image, queue_size=1)           #guarda os parametros para o envio da imagem da Detectnet
+        self.pubImgDetectnet = rospy.Publisher('ImgDetectnet', Image, queue_size=1)           #guarda os parametros para o envio da imagem da Detectnet
         self.pubObjectDetectnet = rospy.Publisher('ObjectDetectnet', String, queue_size=1)         #guarda os parametros para o envio das informações da Detectnet
     
     #callback da profundidade
@@ -68,11 +68,15 @@ class DetectNetNode:
             #objectDetectnet["distance"] = round(self.getDistance(objectDetectnet["coords"]), 2)
             
             objectDetectnetID = objectDetectnetID + 1
-            objectsDetectnet[str(objectDetectnetID)] = objectDetectnet
+            objectsDetectnet[str(objectDetectnetID)] = str(objectDetectnet)
 
-            #self.getImageDetectnet(objectDetectnet)
-            
-        return str(objectsDetectnet)
+            self.getImageDetectnet(objectDetectnet)
+
+        objectsDetectnetSend = {}
+        for index, obj in enumerate(objectsDetectnet):
+            objectsDetectnetSend[str(obj)] = ast.literal_eval(objectsDetectnet[str(obj)])
+
+        return str(objectsDetectnetSend)
 
     def getImageDetectnet(self, objectDetectnet): 
         object_class = objectDetectnet["class"] 
@@ -82,8 +86,11 @@ class DetectNetNode:
 
         cv2.putText(self.imageDetectnet, object_class, (bbox[0]+5, bbox[1]-5), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (0, 255, 0), 2, cv2.LINE_AA)
         cv2.rectangle(self.imageDetectnet, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2)
-        cv2.putText(self.imageDetectnet, "dist: "+str(object_distance), (bbox[0]+5, bbox[1]+25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (0, 255, 0), 2, cv2.LINE_AA)
+        #cv2.putText(self.imageDetectnet, "dist: "+str(object_distance), (bbox[0]+5, bbox[1]+25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.6, (0, 255, 0), 2, cv2.LINE_AA)
         cv2.circle(self.imageDetectnet, [x, y], 10, (255, 0, 0), 5)
+
+        #cv2.imshow("Detectnet", self.imageDetectnet)
+        #cv2.waitKey(1)
 
     def getDistance(self, coords):
         distanciaMin = np.Inf
@@ -102,12 +109,13 @@ class DetectNetNode:
         #if(self.depth is not None):
         self.objectsDetectnet.data = self.getObjetcs()
         #print(self.objectsDetectnet.data )
-        self.pubObjectDetectnet.publish(self.objectsDetectnet)
-        #self.pubImgDetectnet.publish(self.bridge.cv2_to_imgmsg(self.imageDetectnet,"bgra8"))
+        self.pubObjectDetectnet.publish(self.objectsDetectnet) 
+        self.pubImgDetectnet.publish(self.bridge.cv2_to_imgmsg(self.imageDetectnet[:, :, :3],"8UC3")) #
         
 if __name__ == '__main__':
     try:
         node = DetectNetNode()
         rospy.spin()
     except rospy.ROSInterruptException:
+        print("Exception Detectnet: {}".format(rospy.ROSInterruptException))
         pass

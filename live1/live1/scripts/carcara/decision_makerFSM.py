@@ -29,10 +29,11 @@ flag_throttle = True
 flag_break_aeb = False
 flag_break_yolo = False
 flag_acc = False
-platoon_gap = 1.4 #2 Acarcio
+platoon_gap = 2
 can_id = 0x00
 can_params = []
 depth_list = []
+distance_buffer = []
 
 '''
 Definição das constantes
@@ -42,8 +43,9 @@ RPM_INIT = 40
 ANGLE_INIT = 25
 STATE_INIT = 0
 
-DISTANCE_ACC = 1.6 #2.5 Acarcio
-DISTANCE_STOP =  0.9 #1.3 Acarcio
+DISTANCE_ACC = 2.5 
+DISTANCE_STOP = 1.3 
+DISTANCE_BUFFER_LEN = 20
 TIME_CAN = 0.01 #0.001 Intervalo de tempo para envio de msg na CAN
 
 class NodeDecisionMaker:
@@ -61,18 +63,35 @@ class NodeDecisionMaker:
         self.sub_vehicle_position = rospy.Subscriber('TPC4VehiclePosition', Float64, self.callback_vehicle_position)
         self.sub_steering = rospy.Subscriber('TPC4Steering', Float64, self.callback_steering)
         self.sub_curve_radius = rospy.Subscriber('TPC5CurveRadius', Float64MultiArray, self.callback_curve_radius)
-        self.sub_object_yolo = rospy.Subscriber('ObjectYOLO', String, self.callback_object_yolo)
+        #self.sub_object_yolo = rospy.Subscriber('ObjectYOLO', String, self.callback_object_yolo)
+        self.sub_object_yolo = rospy.Subscriber('ObjectDetectnet', String, self.callback_object_yolo)
+
         self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
         self.sub_can_message = rospy.Subscriber('TPC10Bridge', Float64MultiArray, self.callback_logger)
         
         self.pubData = rospy.Publisher('TPC10Decision_Maker', Int64MultiArray , queue_size=1)
 
     def callback_depth(self, msg_depth):
-        global flag_distance_received
+        global flag_distance_received, distance_buffer
         flag_distance_received = True
-        self.distance_decision(msg_depth.data)
         self.msg_depth = msg_depth.data
-        #print("Distancia: {}".format(msg_depth.data))
+
+        if(self.msg_depth > 1.0 ): #CNN
+            distance_buffer.append(self.msg_depth)
+
+            if(len(distance_buffer) > DISTANCE_BUFFER_LEN):
+                distance_buffer.pop(0)
+
+            distance_valid = [i for i in distance_buffer if i < 99 ] 
+            
+            if(len(distance_valid) > 0):
+                distance_valid_mean = sum(distance_valid) / len(distance_valid) 
+
+                if( distance_valid_mean > 0):
+                    self.msg_depth = distance_valid_mean
+                    self.distance_decision()
+        else: #ZED
+            self.distance_decision()
 
     def callback_vehicle_position(self, msg_vehicle_position):
         global flag_vehicle_position_received
@@ -124,7 +143,7 @@ class NodeDecisionMaker:
                 can_id = 0x56
                 can_params = [1, 0, 1, 0]
 
-    def distance_decision(self, distance):
+    def distance_decision(self):
         global flag_break_aeb, flag_acc, can_id, can_params
 
         flag_break_aeb = False
@@ -132,22 +151,26 @@ class NodeDecisionMaker:
         
         distance_acc = DISTANCE_ACC 
         distance_stop = DISTANCE_STOP 
+        distance = self.msg_depth
 
+        #print("Distancia: {} | Distancia STOP: {}".format(distance, distance_stop))
         if not np.isnan(distance):
             if np.isfinite(distance):
-                
+                #print("Distancia: {} | Distancia STOP: {}".format(distance, distance_stop))
                 if distance < distance_stop:
                     #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
                     can_id = 0x5C
                     flag_break_aeb = True
                 elif distance < distance_acc:
-                    #print("ACC - Distância: {}".format(distance))
                     flag_acc = True
-
+                    #print("ACC - Distância: {} | Flag ACC: {}".format(distance, flag_acc))
+                   
             else:
-                #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
+                #print("TRAVA RODA ELSE- FREIA PWM - Distância: {}".format(distance))
                 can_id = 0x5C
                 flag_break_aeb = True
+        #else:
+            #print("NAN | distancia {}".format(distance))
 
         if flag_break_aeb:
             can_params = [1, 0, 1, 0]
@@ -162,20 +185,20 @@ class DecisionMakerFSM:
 
     def __init__(self, node_decision_maker):
         self.dic_states = {0: 'INITIAL', 1: 'NORMAL_DRIVING', 2: 'EMERGENCY_BRAKE', 3:'ACC'}
-
+        
         self.state_transitions = {
             0: lambda: 1 if flag_vehicle_can_init else 0,
             1: lambda: 2 if flag_break_aeb or flag_break_yolo else ( 3 if flag_acc else 1 ),
             2: lambda: 1 if not flag_break_aeb and not flag_break_yolo and not flag_acc else ( 3 if not flag_break_aeb and not flag_break_yolo and flag_acc else 2),
             3: lambda: 2 if flag_break_aeb or flag_break_yolo else (1 if not flag_acc else 3)
-        } 
+        }
         
         self.state = STATE_INIT
         self.rpm_init = RPM_INIT 
         self.angle_can = ANGLE_INIT
         self.time_min = TIME_CAN
         self.rpm_can_acc = 0  
-
+        
         self.t_send_msg_can = time.time() # Inicializa o temporizador de envio de msg na CAN
         self.ACC_bufferError = [node_decision_maker.msg_depth, node_decision_maker.msg_depth]
         self.ACC_bufferTime = [self.t_send_msg_can, self.t_send_msg_can]
@@ -183,17 +206,20 @@ class DecisionMakerFSM:
         self.acc = acc.controllerFuzzy() 
 
     def update_state(self, node_decision_maker):
+        global flag_vehicle_can_init, flag_break_aeb, flag_acc, flag_break_yolo
+        #print('flag_vehicle_can_init: {} | flag_break_aeb: {} | flag_acc: {} | flag_break_yolo: {}'.format(flag_vehicle_can_init, flag_break_aeb, flag_acc, flag_break_yolo))
         self.state = self.state_transitions[self.state]()
+        #print("Estado: {}".format(self.dic_states[self.state]))
         self.actions(node_decision_maker)
 
     def actions(self, node_decision_maker):
         global flag_vehicle_can_init, depth_list, platoon_gap
         self.gap = platoon_gap
-        print("Platoon GAP: {}".format(self.gap ))
+        #print("Platoon GAP: {}".format(self.gap ))
 
         if self.state == 0:
             if flag_vehicle_position_received and flag_steering_received and flag_curve_radius_received and flag_distance_received and flag_object_yolo_received:
-                #print("Estado: {}. Inicialização do carro autorizada!".format(self.dic_states[self.state]))
+                print("Estado: {}. Inicialização do carro autorizada!".format(self.dic_states[self.state]))
                 flag_vehicle_can_init = True
                 try:
                     self.rpm_can =  self.rpm_init
@@ -210,8 +236,9 @@ class DecisionMakerFSM:
                 except Exception as ex:
                     print("Falha ao iniciar o carro: {}".format(ex))
 
-        elif self.state == 1:
-            #print("Estado: {}. Seguindo as faixas".format(self.dic_states[self.state]))
+        elif self.state == 1:                
+            print("Estado: {}. Seguindo as faixas".format(self.dic_states[self.state]))
+            print("Flag AEB: {} | Flag ACC: {} | Flag YOLO: {}".format(flag_break_aeb, flag_acc, flag_break_yolo))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
                 
@@ -235,7 +262,7 @@ class DecisionMakerFSM:
                 node_decision_maker.pubOrinToInfra(param)
         
         elif self.state == 3:  
-            #print("Estado: {}.".format(self.dic_states[self.state]))
+            print("Estado: {}.".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 
                 self.ACC_bufferTime[0] = self.t_send_msg_can
@@ -259,7 +286,7 @@ class DecisionMakerFSM:
 
                         rpm_mean = int((rpm_left + rpm_right)/2)
                         #print("RPM MEAN: {}".format(rpm_mean))
-
+                        print("node_decision_maker.msg_depth: {}".format(node_decision_maker.msg_depth))
                         erro = (node_decision_maker.msg_depth - self.gap)*100
                         self.ACC_bufferError[0] = self.ACC_bufferError[1]
                         self.ACC_bufferError[1] = erro
@@ -287,8 +314,6 @@ class DecisionMakerFSM:
                 
         
 def main():
-    global depth_list
-
     rospy.init_node("Decisionmaker")
     print("O node Decision Maker foi iniciado")
 
@@ -297,10 +322,7 @@ def main():
 
     while not rospy.is_shutdown():
         try:
-            
             decision_maker_fsm.update_state(node_decision_maker)
-            decision_maker_fsm.actions(node_decision_maker)
-            
             gc.collect()
 
         except Exception as ex:

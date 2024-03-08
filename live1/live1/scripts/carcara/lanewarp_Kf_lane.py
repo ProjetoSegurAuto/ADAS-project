@@ -45,7 +45,6 @@ class NodeLanewarp():
         self.pubLKAnave = rospy.Publisher('TPC8LKAnave', Image, queue_size=1)
 
     def callback(self, msg_camera):
-
         # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
         self.msgTPC1Camera = self.bridge.imgmsg_to_cv2(msg_camera, 'bgra8')
 
@@ -77,13 +76,34 @@ class LaneWarp():
 
     # Transformando imagem da camera em Bird Eye
 
+    def warp_steering(self, imagem):
+
+        height = imagem.shape[0]
+        width = imagem.shape[1]
+        img_size = (width, height)
+
+        src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
+        dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
+
+        img = imagem
+        cv2.circle(img, (0, height), 10, (0, 0, 255), 5)
+        cv2.circle(img, (width, height), 10, (0, 0, 255), 5)
+        cv2.circle(img, (235, 530), 10, (0, 0, 255), 5)
+        cv2.circle(img, ((width-210), 530), 10, (0, 0, 255), 5)
+
+        M = cv2.getPerspectiveTransform(src, dst)        # [estudar]
+        M_inv = cv2.getPerspectiveTransform(dst, src)    # [estudar]
+        warp = cv2.warpPerspective(imagem, M, img_size)  # [estudar]
+
+        return warp, M_inv
+    
     def warp(self, imagem):
 
         height = imagem.shape[0]
         width = imagem.shape[1]
         img_size = (width, height)
 
-        # src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
+        #src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
                 
         #gsv
         src = np.float32([[0, height], [width, height], [500, 415], [(width-450), 415]])
@@ -95,11 +115,11 @@ class LaneWarp():
         cv2.circle(img, (235, 530), 10, (0, 0, 255), 5)
         cv2.circle(img, ((width-210), 530), 10, (0, 0, 255), 5)
 
-        cv2.circle(img, (500, 415), 10, (255, 0, 0), 5)
+        cv2.circle(img, (415, 415), 10, (255, 0, 0), 5) #500
         cv2.circle(img, (width-450, 415), 10, (255, 0, 0), 5)
 
-        M = cv2.getPerspectiveTransform(src, dst)  # [estudar]
-        M_inv = cv2.getPerspectiveTransform(dst, src)  # [estudar]
+        M = cv2.getPerspectiveTransform(src, dst)        # [estudar]
+        M_inv = cv2.getPerspectiveTransform(dst, src)    # [estudar]
         warp = cv2.warpPerspective(imagem, M, img_size)  # [estudar]
 
         return warp, M_inv
@@ -114,7 +134,7 @@ class LaneWarp():
         # (T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         #(T, thresh) = cv2.threshold(blurred, 102, 255, cv2.THRESH_BINARY_INV) #indoor 12-14hrs
         #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV)   #indoor
-        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        (T, thresh) = cv2.threshold(blurred, 121, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
         #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
         
 
@@ -425,7 +445,7 @@ class LaneWarp():
 
     def working(self, imagem, NodeRos):
         # Imagem Bird Eye View
-        img_be, M = self.warp(imagem)
+        img_be, M = self.warp_steering(imagem)
 
         # Imagem Binarizada
         img_bin = self.binary_thresholder(img_be)
@@ -443,7 +463,20 @@ class LaneWarp():
 
         angDir = self.cinematicaPurePursuit(veh_pos)
         
-        out_img, navegation = self.project_lane_info(imagem[:, :, 0:3], laneValid, ploty, left_fitx, right_fitx, M, left_curverad, right_curverad, veh_pos, angDir) 
+        #-----------------------------------------#
+        # Imagem Bird Eye View
+        img_be_nv, M_nv = self.warp(imagem)
+
+        # Imagem Binarizada
+        img_bin_nv = self.binary_thresholder(img_be_nv)
+        
+        # Resgatando e validando pontos da linha esquerda e direita
+        leftx_nv, lefty_nv, rightx_nv, righty_nv = self.find_lane_pixels_using_histogram(img_bin_nv)
+
+        left_fit_nv, right_fit_nv, left_fitx_nv, right_fitx_nv, ploty_nv, laneValid_nv = self.fit_poly(img_bin_nv, leftx_nv, lefty_nv, rightx_nv, righty_nv)
+        left_curverad_nv, right_curverad_nv = self.measure_curvature_meters(img_bin_nv, left_fitx_nv, right_fitx_nv, ploty_nv)
+        
+        out_img, navegation = self.project_lane_info(imagem[:, :, 0:3], laneValid_nv, ploty_nv, left_fitx_nv, right_fitx_nv, M_nv, left_curverad_nv, right_curverad_nv, veh_pos, angDir) 
 
         for i in range(len(center)):
             cv2.circle(laneValid, (int(center[i][0]), int(center[i][1])), 10, (255, 255, 255), 5)
@@ -482,8 +515,8 @@ def main():
                 lanewarp.working(nodeLanewarp.msgTPC1Camera, nodeLanewarp)
 
             except Exception as ex:
-                print("Exception: {}".format(ex))
-                #pass
+                print("Exception Lane: {}".format(ex))
+                pass
 
             #except KeyboardInterrupt:
             #    print("Exception: KeyboardInterrupt Lane")

@@ -28,18 +28,22 @@ class NodeDepth():
         self.msgNave = None 
         self.msgObject = None
 
+        self.objectDepth = Float64()  
+
         self.subImg = rospy.Subscriber('TPC1Camera', Image, self.callbackImagem)
         self.subNave = rospy.Subscriber('TPC8LKAnave', Image, self.callbackNave)
         self.subDepth = rospy.Subscriber('TPC2Depth',Image, self.callbackDepth)
-        #self.subObject = rospy.Subscriber('ObjectDetectnet', String, self.callbackObject)
-        self.subObject = rospy.Subscriber('ObjectYOLO', String, self.callbackObject)
+        self.subObject = rospy.Subscriber('ObjectDetectnet', String, self.callbackObject)
+        #self.subObject = rospy.Subscriber('ObjectYOLO', String, self.callbackObject)
 
-        self.pubMsgDepth = rospy.Publisher('TPC3Depth', Float64, queue_size=1)
+        self.pubMsgDepth = rospy.Publisher('TPC3Depth', Float64, queue_size=1) 
 
     def callbackObject(self, msg):
         self.msgObject = ast.literal_eval(msg.data)
         if(self.msgDepth is not None and self.msgNave is not None and self.msgImage is not None):
-            self.getDistances()
+
+            self.objectDepth = self.getDistances()
+            self.pubMsgDepth.publish(self.objectDepth)  
 
     def callbackDepth(self, msg):
         self.msgDepth = self.bridge.imgmsg_to_cv2(msg,'32FC1')
@@ -52,25 +56,35 @@ class NodeDepth():
 
     #pega a distancia do ponto mais próximo
     def getDistances(self):
-        distancia = math.inf
-        for object in self.msgObject:
-            bbox = self.msgObject[object]["coords"]
-            rectangle = np.zeros((self.msgNave.shape[0], self.msgNave.shape[1]), dtype="float32")
-            cv2.rectangle(rectangle, (bbox[0], bbox[1]), (bbox[2], bbox[3]), 255, -1)
-            objectAhead = cv2.bitwise_and(self.msgNave, rectangle)
+        distancia = 99 
 
-            if(objectAhead.max() > 0):
-                recorte = np.where(objectAhead[:, :], self.msgDepth[:, :], math.inf)
-                self.msgObject[object]["distance"] = round(np.nanmin(recorte), 2) 
-                if distancia > self.msgObject[object]["distance"]:
-                    distancia = self.msgObject[object]["distance"]
+        recorte = np.where(self.msgNave[:, :], self.msgDepth[:, :], math.inf)
+        distancia_zed = round(np.nanmin(recorte), 2) 
+        if(distancia_zed < 1.0 or distancia_zed > 99):
+            distancia = distancia_zed
 
-        self.pubMsgDepth.publish(distancia)  
+        else:
+            for object in self.msgObject:
+                self.msgObject[object]["distance"] = distancia
+                bbox = self.msgObject[object]["coords"]
+                
+                rectangle = np.zeros((self.msgNave.shape[0], self.msgNave.shape[1]), dtype="float32")
+                cv2.rectangle(rectangle, (bbox[0], bbox[1]), (bbox[2], bbox[3]), 255, -1)
+                objectAhead = cv2.bitwise_and(self.msgNave, rectangle)
+                
+                if(objectAhead.any() > 0):
+                    recorte = np.where(objectAhead[:, :], self.msgDepth[:, :], math.inf)
+                    self.msgObject[object]["distance"] = round(np.nanmin(recorte), 2) 
+
+                    if(distancia > self.msgObject[object]["distance"]):
+                        distancia = self.msgObject[object]["distance"]
+            
+        return distancia
         
-
 if __name__ == '__main__':
     try:
         node = NodeDepth()
         rospy.spin()
     except rospy.ROSInterruptException:
-        print("Exception: {}".format(rospy.ROSInterruptException))
+        print("Exception Depth: {}".format(rospy.ROSInterruptException))
+        pass

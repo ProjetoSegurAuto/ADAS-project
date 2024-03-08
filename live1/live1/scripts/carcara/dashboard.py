@@ -14,8 +14,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 flagLKAroi = False  # variável global para garantir que o tratamento da imagem so ira começar se tiver recebido imagem
 flagLKAresult = False
-flagImgYolo = False
-flagImgDetectNet = False
+flagImgObject = False
 
 
 class NodeDashboard():
@@ -33,12 +32,10 @@ class NodeDashboard():
         self.subLKAroi = rospy.Subscriber('TPC6LKAroi', Image, self.callbackROI)
         # inscrição no topico de LKA resultado
         self.subLKAresult = rospy.Subscriber('TPC7LKAresult', Image, self.callbackResult)
-        self.subImgYOLO = rospy.Subscriber('ImgYOLO', Image, self.callbackYOLO)  # inscrição no topico de YOLO
-        
-        #self.subImgDetectNet = rospy.Subscriber('detections_with_boxes', Image, self.callbackDetectNet)
+        #self.subImgObject = rospy.Subscriber('ImgYOLO', Image, self.callbackObject)  # inscrição no topico de YOLO
+        self.subImgObject = rospy.Subscriber('ImgDetectnet', Image, self.callbackObject) 
 
     def callbackROI(self, msg_roi):
-
         # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
         self.msgTPC6LKAroi = self.bridge.imgmsg_to_cv2(msg_roi, '8UC1')
 
@@ -46,7 +43,6 @@ class NodeDashboard():
         flagLKAroi = True  # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
 
     def callbackResult(self, msg_result):
-
         # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
         self.msgTPC7LKAresult = self.bridge.imgmsg_to_cv2(msg_result, '8UC3')
 
@@ -54,48 +50,23 @@ class NodeDashboard():
         # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
         flagLKAresult = True
 
-    def callbackYOLO(self, msg_img_yolo):
-
+    def callbackObject(self, msg_img):
         # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
-        self.msgTPC3ImgYOLO = self.bridge.imgmsg_to_cv2(msg_img_yolo, '8UC3')
+        self.msgImgObject = self.bridge.imgmsg_to_cv2(msg_img, '8UC3')
 
-        global flagImgYolo
+        global flagImgObject
         # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
-        flagImgYolo = True
-
-    def callbackDetectNet(self, msg_img_detectnet):
-
-        # quando a imagem for recebida ela será convertida de msgImage para objeto do opencv
-        self.msgDetectNet = self.bridge.imgmsg_to_cv2(msg_img_detectnet, "bgra8")
-
-        global flagImgDetectNet
-        # Como a mensagem chegou, ativa a flag que permite o tratamento da imagem
-        flagImgDetectNet = True
+        flagImgObject = True
 
 class Dashboard():
 
-    def working(self, imageROI, imageResult, imageYolo):
-
-        # image = image[:, :, :3]
-
-        # I just resized the image to a quarter of its original size
+    def working(self, imageROI, imageResult, imageObject):
         imageROI = cv2.resize(cv2.cvtColor(imageROI, cv2.COLOR_GRAY2BGR), (0, 0), None, .5, .5)#cv2.resize(imageROI, (0, 0), None, .5, .5)
-        imageYolo = cv2.resize(imageYolo, (0, 0), None, .5, .5)
-        #imageDetectNet = cv2.resize(imageDetectNet, (0, 0), None, .5, .5)
-        #imageResult = cv2.resize(imageResult, (0, 0), None, .75, .75)
+        imageObject = cv2.resize(imageObject, (0, 0), None, .5, .5)
 
-        # grey = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        # Make the grey scale image have three channels
-        # grey_3_channel = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-
-        numpy_vertical = np.vstack((imageROI, imageYolo))
+        numpy_vertical = np.vstack((imageROI, imageObject))
         numpy_horizontal = np.hstack((imageResult, numpy_vertical))
 
-        #numpy_vertical_concat = np.concatenate((imageROI, imageResult, imageYolo), axis=0)
-
-        #numpy_horizontal_concat = np.concatenate((imageROI, imageResult, imageYolo), axis=1)
-
-        # cv2.imshow('Main', image)
         '''
         cv2.imshow('Numpy Vertical', numpy_vertical)
         cv2.imshow('Numpy Horizontal', numpy_horizontal)
@@ -104,7 +75,6 @@ class Dashboard():
         '''
 
         cv2.imshow('LIVE', numpy_horizontal)
-
         cv2.waitKey(1)
 
 
@@ -117,21 +87,17 @@ def main():
     dashboard = Dashboard()
 
     while (not rospy.is_shutdown()):
-        if (flagLKAroi and flagLKAresult and flagImgYolo):
+        if (flagLKAroi and flagLKAresult and flagImgObject):
             try:
                 dashboard.working(
                     nodeDashboard.msgTPC6LKAroi,
                     nodeDashboard.msgTPC7LKAresult, 
-                    nodeDashboard.msgTPC3ImgYOLO
+                    nodeDashboard.msgImgObject
                 )
 
             except Exception as ex:
-                print("Exception: {}".format(ex))
-                #pass
-
-            #except KeyboardInterrupt:
-            #    print("Exception: KeyboardInterrupt Lane")
-
+                print("Exception Dashboard: {}".format(ex))
+                pass
 
 if (__name__ == "__main__"):
     main()

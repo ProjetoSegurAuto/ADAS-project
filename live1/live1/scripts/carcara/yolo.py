@@ -13,6 +13,7 @@ from std_msgs.msg import Float64MultiArray, String  #tipo de mensagem que sera e
 from cv_bridge import CvBridge, CvBridgeError       #converter open cv para imagem ros
 import gc                                           #garbage collector
 from ultralytics import YOLO                        #YOLO   
+import ast
 
 class NodeYOLO():
     def __init__(self):
@@ -50,36 +51,46 @@ class NodeYOLO():
     
     #Detecta objetos na imagem
     def getObjetcs(self, image):
-        results = self.model.predict(image, conf=0.2, verbose=False)  #0.7
         objectsYOLO = {}
+        
         objectYOLO = {
             "classId": 0,
-            "cords": [0, 0, 0, 0],
+            "coords": [0, 0, 0, 0],
             "conf": 0,
             "distance": 0
         }
-        #comentar caso não queira debugar
         imageYOLO = image
+
+        results = self.model.predict(image, conf=0.6, verbose=False)  #0.7
         if(results[0]):
+            
             result = results[0]
             objectYOLOID = 0
-            #comentar caso não queira debugar
             imageYOLO = result.plot() 
+
             for box in result.boxes:
                 objectYOLO["classId"]  = result.names[box.cls[0].item()]
                 objectYOLO["coords"] = box.xyxy[0].tolist()
                 objectYOLO["coords"] = [round(x) for x in objectYOLO["coords"]]
                 objectYOLO["conf"] = round(box.conf[0].item(), 2)
                 #objectYOLO["distance"] = np.Inf
+                
                 objectYOLOID = objectYOLOID + 1
-                objectsYOLO[str(objectYOLOID)] = objectYOLO
-                #comentar caso não queira debugar
-                #print("Objeto Yolo ({}):\n-classId: {}\n-coords: {}\n-conf: {}\n-depth: {}\n\n".format(object, objectsYOLO[str(objectYOLOID)]['classId'], objectsYOLO[str(objectYOLOID)]['coords'], objectsYOLO[str(objectYOLOID)]['conf'], objectsYOLO[str(objectYOLOID)]['distance']))
-        return str(objectsYOLO), imageYOLO
+                objectsYOLO[str(objectYOLOID)] = str(objectYOLO)
+               
+            #print("Objetos Yolo: {}\n".format(objectsYOLO))
+            #print("Objeto Yolo {}:\n-classId: {}\n-coords: {}\n-conf: {}\n-depth: {}\n\n".format(str(objectYOLOID), objectsYOLO[str(objectYOLOID)]['classId'], objectsYOLO[str(objectYOLOID)]['coords'], objectsYOLO[str(objectYOLOID)]['conf'], objectsYOLO[str(objectYOLOID)]['distance']))
+            
+            objectsYOLOSend = {}
+            for index, obj in enumerate(objectsYOLO):
+                objectsYOLOSend[str(obj)] = ast.literal_eval(objectsYOLO[str(obj)])
+
+        return str(objectsYOLOSend), imageYOLO
 
 if __name__ == '__main__':
     try:
         node = NodeYOLO()
         rospy.spin()
     except rospy.ROSInterruptException:
-        print("Exception: {}".format(rospy.ROSInterruptException))
+        print("Exception Yolo: {}".format(rospy.ROSInterruptException))
+        pass

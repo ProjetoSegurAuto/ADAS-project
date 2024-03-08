@@ -76,7 +76,7 @@ def main():
                 older_can_msg = data_logger
 
         except Exception as e: 
-            print(e) 
+            print("Exception BRIDGE VECTOR: {}".format(e))
 
 if __name__ == "__main__":
     main()
