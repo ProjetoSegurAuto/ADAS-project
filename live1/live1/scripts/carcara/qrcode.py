@@ -35,7 +35,7 @@ class NodePlates():
         self.subDepth = rospy.Subscriber('TPC2Depth',Image,self.callbackDepth)
 
         #publicação a decisão do qr code.
-        self.pubQRCode = rospy.Publisher('TPC6QRCode',Float64,queue_size=1)
+        self.pubQRCode = rospy.Publisher('QRCode',Float64,queue_size=1)
 
     #callback para a imagem
     def callbackImage(self,msg_image):

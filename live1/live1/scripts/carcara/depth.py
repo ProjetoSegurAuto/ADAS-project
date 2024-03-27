@@ -36,12 +36,12 @@ class NodeDepth():
         self.subObject = rospy.Subscriber('ObjectDetectnet', String, self.callbackObject)
         #self.subObject = rospy.Subscriber('ObjectYOLO', String, self.callbackObject)
 
-        self.pubMsgDepth = rospy.Publisher('TPC3Depth', Float64, queue_size=1) 
+        self.pubMsgDepth = rospy.Publisher('ObjectsDepth', Float64, queue_size=1) 
 
     def callbackObject(self, msg):
         self.msgObject = ast.literal_eval(msg.data)
-        if(self.msgDepth is not None and self.msgNave is not None and self.msgImage is not None):
 
+        if(self.msgDepth is not None and self.msgNave is not None and self.msgImage is not None):
             self.objectDepth = self.getDistances()
             self.pubMsgDepth.publish(self.objectDepth)  
 

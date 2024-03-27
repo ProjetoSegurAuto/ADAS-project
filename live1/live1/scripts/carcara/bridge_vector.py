@@ -16,9 +16,9 @@ class Bridge():
         self.__flagReceive = False
         self.socket = vc.openSocket()  
 
-        self.subDataFromOrin = rospy.Subscriber('TPC10Decision_Maker', Int64MultiArray, self.callBackDataFromOrin)
+        self.subDataFromOrin = rospy.Subscriber('Decision_Maker', Int64MultiArray, self.callBackDataFromOrin)
         self.pubCAN = rospy.Publisher('TPC9Bridge', Float64MultiArray , queue_size=1)
-        self.pubCAN1 = rospy.Publisher('TPC10Bridge', Float64MultiArray , queue_size=1)
+        self.pubCAN1 = rospy.Publisher('Bridge', Float64MultiArray , queue_size=1)
         
     def pubCANMessage(self, can_message):
         self.__can_message = Float64MultiArray()

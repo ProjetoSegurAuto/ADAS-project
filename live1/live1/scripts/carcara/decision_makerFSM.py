@@ -16,73 +16,93 @@ import acc
 import log
 
 '''
-Definição das variáveis globais
-'''
-flag_distance_received = False
-flag_vehicle_position_received = False
-flag_steering_received = False
-flag_curve_radius_received = False
-flag_object_yolo_received = False
-flag_vehicle_can_init = False
-flag_qr_code = False
-flag_throttle = True
-flag_break_aeb = False
-flag_break_yolo = False
-flag_acc = False
-platoon_gap = 2
-can_id = 0x00
-can_params = []
-depth_list = []
-distance_buffer = []
-
-'''
 Definição das constantes
 '''
-
-RPM_INIT = 40
+RPM_INIT = 60
 ANGLE_INIT = 25
 STATE_INIT = 0
+RPM_ACC_INIT = 0
 
-DISTANCE_ACC = 2.5 
-DISTANCE_STOP = 1.3 
+PLATOON_GAP_INIT = 2
+
+DISTANCE_ACC = 3.0 
+DISTANCE_STOP = 1.1 
 DISTANCE_BUFFER_LEN = 20
 TIME_CAN = 0.01 #0.001 Intervalo de tempo para envio de msg na CAN
 
 class NodeDecisionMaker:
     def __init__(self):
+        self.distance_buffer = []
+        self.can_params = []
+        self.can_id = 0x00
+
+        self.platoon_gap = PLATOON_GAP_INIT
+        
+        #Flags processamento 
+        self.flag_break_aeb = False
+        self.flag_break_placa = False
+        self.flag_acc = False
+
+        #Flags recebimento de mensagens
+        self.flag_depth_received = False
+        self.flag_vehicle_position_received = False
+        self.flag_steering_received = False
+        self.flag_curve_radius_received = False
+        self.flag_object_received = False
+        self.flag_bridge_received = False
+        self.flag_vehicle_can_init = False
+        self.flag_qr_code = False
+
+        #Inicializacao de atributos para recebimento de mensagens
         self.msg_depth = Float64()
         self.msg_vehicle_position = Float64()
         self.msg_steering = Float64()
         self.msg_curve_radius = Float64MultiArray()
-        self.msg_object_yolo = String()
+        self.msg_object = String()
         self.msg_qr_code = Float64()
-        self.__can_message = list()
-        self.__flag_receive_can_msg = False
+        self.msg_bridge = list()
 
-        self.sub_depth = rospy.Subscriber('TPC3Depth', Float64, self.callback_depth)
-        self.sub_vehicle_position = rospy.Subscriber('TPC4VehiclePosition', Float64, self.callback_vehicle_position)
-        self.sub_steering = rospy.Subscriber('TPC4Steering', Float64, self.callback_steering)
-        self.sub_curve_radius = rospy.Subscriber('TPC5CurveRadius', Float64MultiArray, self.callback_curve_radius)
-        #self.sub_object_yolo = rospy.Subscriber('ObjectYOLO', String, self.callback_object_yolo)
-        self.sub_object_yolo = rospy.Subscriber('ObjectDetectnet', String, self.callback_object_yolo)
+        self.orin_message = Int64MultiArray()
 
-        self.sub_qr_code = rospy.Subscriber('TPC6QRCode', Float64, self.callback_qr_code)
-        self.sub_can_message = rospy.Subscriber('TPC10Bridge', Float64MultiArray, self.callback_logger)
+        '''
+        Subscriber 
+        '''
+        # Distancias dos objetos detectados na area navegavel
+        self.sub_depth = rospy.Subscriber('ObjectsDepth', Float64, self.callback_depth)
+
+        # Posicao do veiculo em relacao ao centro das faixas
+        self.sub_vehicle_position = rospy.Subscriber('VehiclePosition', Float64, self.callback_vehicle_position)
+        # Angulo de esterçamento do volante
+        self.sub_steering = rospy.Subscriber('Steering', Float64, self.callback_steering)
+        # Raio de curvatura da pista
+        self.sub_curve_radius = rospy.Subscriber('CurveRadius', Float64MultiArray, self.callback_curve_radius)
+
+        # Objetos detectados pela rede neural - YOLO ou Detectnet (trafficcamnet; ssd-mobilenet-v2)
+        #self.sub_object_yolo = rospy.Subscriber('ObjectYOLO', String, self.callback_object)
+        self.sub_object_yolo = rospy.Subscriber('ObjectDetectnet', String, self.callback_object)
+
+        # QR Code
+        self.sub_qr_code = rospy.Subscriber('QRCode', Float64, self.callback_qr_code)
+
+        # CAN Message - Vector e Orin
+        self.sub_can_message = rospy.Subscriber('Bridge', Float64MultiArray, self.callback_bridge)
         
-        self.pubData = rospy.Publisher('TPC10Decision_Maker', Int64MultiArray , queue_size=1)
+        '''
+        Publisher 
+        '''
+        self.pub_decision_maker = rospy.Publisher('Decision_Maker', Int64MultiArray , queue_size=1)
 
     def callback_depth(self, msg_depth):
-        global flag_distance_received, distance_buffer
-        flag_distance_received = True
+        self.flag_depth_received = True
         self.msg_depth = msg_depth.data
 
         if(self.msg_depth > 1.0 ): #CNN
-            distance_buffer.append(self.msg_depth)
+            self.distance_buffer.append(self.msg_depth)
 
-            if(len(distance_buffer) > DISTANCE_BUFFER_LEN):
-                distance_buffer.pop(0)
+            if(len(self.distance_buffer) > DISTANCE_BUFFER_LEN):
+                self.distance_buffer.pop(0)
 
-            distance_valid = [i for i in distance_buffer if i < 99 ] 
+            distance_valid = [i for i in self.distance_buffer if i < 99 ] 
             
             if(len(distance_valid) > 0):
                 distance_valid_mean = sum(distance_valid) / len(distance_valid) 
@@ -94,143 +114,125 @@ class NodeDecisionMaker:
             self.distance_decision()
 
     def callback_vehicle_position(self, msg_vehicle_position):
-        global flag_vehicle_position_received
-        flag_vehicle_position_received = True
+        self.flag_vehicle_position_received = True
         self.msg_vehicle_position = msg_vehicle_position.data
 
     def callback_steering(self, msg_steering):
-        global flag_steering_received
-        flag_steering_received = True
+        self.flag_steering_received = True
         self.msg_steering = int(msg_steering.data)
 
     def callback_curve_radius(self, msg_radius_curve):
-        global flag_curve_radius_received
-        flag_curve_radius_received = True
+        self.flag_curve_radius_received = True
         self.msg_curve_radius = msg_radius_curve.data
 
-    def callback_object_yolo(self, msg_object_yolo):
-        global flag_object_yolo_received
-        flag_object_yolo_received = True
-        json_object_yolo = ast.literal_eval(msg_object_yolo.data)
-        self.yolo_decision(json_object_yolo)
-        self.msg_object_yolo = json_object_yolo
+    def callback_object(self, msg_object):
+        self.flag_object_received = True
+        json_object = ast.literal_eval(msg_object.data)
+        self.yolo_decision(json_object)
+        self.msg_object = json_object
 
-    def callback_logger(self, can_message):
-        global platoon_gap
-        self.__flag_receive_can_msg = True
-        self.__can_message = list(can_message.data)
-        if(len(self.__can_message) and hex(int(self.__can_message[0])) == '0x95'):
-            platoon_gap = self.__can_message[2]/100
-            #print("CAN MSG (platoon_gap): {}".format(self.__can_message ))
-        #print("CAN MSG: {}".format(self.__can_message ))
-    
-    def getCANMessage(self):
-        return self.__can_message
+    def callback_bridge(self, can_message):
+        self.flag_bridge_received = True
+        self.msg_bridge = list(can_message.data)
+        if(len(self.msg_bridge) and hex(int(self.msg_bridge[0])) == '0x95'):
+            self.platoon_gap = self.msg_bridge[2]/100
 
-    def pubOrinToInfra(self, orin_message: list):
-        self.__orin_message = Int64MultiArray()
-        self.__orin_message.data = orin_message 
-        self.pubData.publish(self.__orin_message)
+    def callback_qr_code(self, msg_qr_code):
+        self.flag_qr_code = True
+        self.msg_qr_code = msg_qr_code
 
-    def yolo_decision(self, json_object_yolo):
-        global flag_break_yolo, can_id, can_params
-        flag_break_yolo = False
-        for object in json_object_yolo:
-            #print(json_object_yolo[object])
-            if json_object_yolo[object]['classId'] == "stop sign":
-                #print("FREIA PID - Placa PARE")
-                flag_break_yolo = True
-                can_id = 0x56
-                can_params = [1, 0, 1, 0]
+    def pubOrinToInfra(self):
+        self.orin_message.data =  self.can_params 
+        self.pub_decision_maker.publish(self.orin_message)
 
     def distance_decision(self):
-        global flag_break_aeb, flag_acc, can_id, can_params
-
-        flag_break_aeb = False
-        flag_acc = False
-        
-        distance_acc = DISTANCE_ACC 
-        distance_stop = DISTANCE_STOP 
         distance = self.msg_depth
+        print("Distancia {}".format(distance))
 
-        #print("Distancia: {} | Distancia STOP: {}".format(distance, distance_stop))
+        self.flag_break_aeb = False
+        self.flag_acc = False
+        
         if not np.isnan(distance):
+
             if np.isfinite(distance):
-                #print("Distancia: {} | Distancia STOP: {}".format(distance, distance_stop))
-                if distance < distance_stop:
+
+                if distance < DISTANCE_STOP:
                     #print("TRAVA RODA - FREIA PWM - Distância: {}".format(distance))
-                    can_id = 0x5C
-                    flag_break_aeb = True
-                elif distance < distance_acc:
-                    flag_acc = True
+                    self.flag_break_aeb = True
+
+                elif distance < DISTANCE_ACC:
+                    self.flag_acc = True
                     #print("ACC - Distância: {} | Flag ACC: {}".format(distance, flag_acc))
                    
             else:
                 #print("TRAVA RODA ELSE- FREIA PWM - Distância: {}".format(distance))
-                can_id = 0x5C
-                flag_break_aeb = True
-        #else:
-            #print("NAN | distancia {}".format(distance))
+                self.flag_break_aeb = True
 
-        if flag_break_aeb:
-            can_params = [1, 0, 1, 0]
+        else:
+            print("NAN | distancia {}".format(distance))
+            
 
-    def callback_qr_code(self, msg_qr_code):
-        global flag_qr_code
-        flag_qr_code = True
-        self.msg_qr_code = msg_qr_code
+    def yolo_decision(self, json_object):
+        self.flag_break_placa = False
+        for object in json_object:
+            if json_object[object]['classId'] == "stop sign":
+                #print("FREIA PID - Placa PARE")
+                self.flag_break_placa = True
+                self.can_id = 0x56
+                self.can_params = [1, 0, 1, 0, self.can_id]
 
 class DecisionMakerFSM:
-    global flag_vehicle_can_init, flag_break_aeb, flag_acc, flag_break_yolo, can_id, can_params
-
+    
     def __init__(self, node_decision_maker):
+
+        ndm = node_decision_maker
+
+        self.flag_vehicle_can_init = False
         self.dic_states = {0: 'INITIAL', 1: 'NORMAL_DRIVING', 2: 'EMERGENCY_BRAKE', 3:'ACC'}
-        
         self.state_transitions = {
-            0: lambda: 1 if flag_vehicle_can_init else 0,
-            1: lambda: 2 if flag_break_aeb or flag_break_yolo else ( 3 if flag_acc else 1 ),
-            2: lambda: 1 if not flag_break_aeb and not flag_break_yolo and not flag_acc else ( 3 if not flag_break_aeb and not flag_break_yolo and flag_acc else 2),
-            3: lambda: 2 if flag_break_aeb or flag_break_yolo else (1 if not flag_acc else 3)
+            0: lambda: 1 if self.flag_vehicle_can_init else 0,
+            1: lambda: 2 if ndm.flag_break_aeb or ndm.flag_break_placa else ( 3 if ndm.flag_acc else 1 ),
+            2: lambda: 1 if not ndm.flag_break_aeb and not ndm.flag_break_placa and not ndm.flag_acc else ( 3 if not ndm.flag_break_aeb and not ndm.flag_break_placa and ndm.flag_acc else 2),
+            3: lambda: 2 if ndm.flag_break_aeb or ndm.flag_break_placa else (1 if not ndm.flag_acc else 3)
         }
         
         self.state = STATE_INIT
         self.rpm_init = RPM_INIT 
+        self.rpm_can =  0
         self.angle_can = ANGLE_INIT
         self.time_min = TIME_CAN
-        self.rpm_can_acc = 0  
+        self.gap = ndm.platoon_gap
         
-        self.t_send_msg_can = time.time() # Inicializa o temporizador de envio de msg na CAN
-        self.ACC_bufferError = [node_decision_maker.msg_depth, node_decision_maker.msg_depth]
+        # Inicializa o temporizador de envio de msg na CAN
+        self.t_send_msg_can = time.time() 
+        # Inicializa os buffers do ACC com valores iguais
+        self.ACC_bufferError = [ndm.msg_depth, ndm.msg_depth]
         self.ACC_bufferTime = [self.t_send_msg_can, self.t_send_msg_can]
        
         self.acc = acc.controllerFuzzy() 
 
     def update_state(self, node_decision_maker):
-        global flag_vehicle_can_init, flag_break_aeb, flag_acc, flag_break_yolo
-        #print('flag_vehicle_can_init: {} | flag_break_aeb: {} | flag_acc: {} | flag_break_yolo: {}'.format(flag_vehicle_can_init, flag_break_aeb, flag_acc, flag_break_yolo))
         self.state = self.state_transitions[self.state]()
-        #print("Estado: {}".format(self.dic_states[self.state]))
         self.actions(node_decision_maker)
 
     def actions(self, node_decision_maker):
-        global flag_vehicle_can_init, depth_list, platoon_gap
-        self.gap = platoon_gap
-        #print("Platoon GAP: {}".format(self.gap ))
+        ndm = node_decision_maker
+        self.gap = ndm.platoon_gap
 
         if self.state == 0:
-            if flag_vehicle_position_received and flag_steering_received and flag_curve_radius_received and flag_distance_received and flag_object_yolo_received:
+            if ndm.flag_vehicle_position_received and ndm.flag_steering_received and ndm.flag_curve_radius_received and ndm.flag_depth_received and ndm.flag_object_received:
                 print("Estado: {}. Inicialização do carro autorizada!".format(self.dic_states[self.state]))
-                flag_vehicle_can_init = True
+                self.flag_vehicle_can_init = True
                 try:
                     self.rpm_can =  self.rpm_init
-                    msg_can_id = 0x56
-                    param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
-                    node_decision_maker.pubOrinToInfra(param)
+                    ndm.can_id = 0x56
+                    ndm.can_params = [1, self.rpm_can, 1, self.rpm_can, ndm.can_id]
+                    ndm.pubOrinToInfra()
                     #print("Mensagem para ECU POWERTRAIN: ", msg_can_id, param)
 
-                    msg_can_id = 0x82
-                    param = [self.angle_can, msg_can_id]
-                    node_decision_maker.pubOrinToInfra(param)
+                    ndm.can_id = 0x82
+                    ndm.can_params = [self.angle_can, ndm.can_id]
+                    ndm.pubOrinToInfra()
                     #print("Mensagem para ECU DIREÇÃO: ", msg_can_id, param)
 
                 except Exception as ex:
@@ -238,28 +240,25 @@ class DecisionMakerFSM:
 
         elif self.state == 1:                
             print("Estado: {}. Seguindo as faixas".format(self.dic_states[self.state]))
-            print("Flag AEB: {} | Flag ACC: {} | Flag YOLO: {}".format(flag_break_aeb, flag_acc, flag_break_yolo))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
-                
+
+                ndm.can_id = 0x82
+                ndm.can_params = [ndm.msg_steering, ndm.can_id]
+                ndm.pubOrinToInfra()
+
                 self.rpm_can =  self.rpm_init
-                ang_dir = node_decision_maker.msg_steering
-
-                msg_can_id = 0x82
-                param = [ang_dir, msg_can_id]
-                node_decision_maker.pubOrinToInfra(param)
-
-                msg_can_id = 0x56
-                param = [1, self.rpm_can, 1, self.rpm_can, msg_can_id]
-                node_decision_maker.pubOrinToInfra(param)
+                ndm.can_id = 0x56
+                ndm.can_params = [1, self.rpm_can, 1, self.rpm_can, ndm.can_id]
+                ndm.pubOrinToInfra()
 
         elif self.state == 2:
             print("Estado: {}. Emergência!".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
-                param = can_params 
-                param.append(can_id)
-                node_decision_maker.pubOrinToInfra(param)
+                ndm.can_id = 0x5C
+                ndm.can_params = [1, 0, 1, 0, ndm.can_id]
+                ndm.pubOrinToInfra()
         
         elif self.state == 3:  
             print("Estado: {}.".format(self.dic_states[self.state]))
@@ -269,14 +268,12 @@ class DecisionMakerFSM:
                 self.ACC_bufferTime[1] = time.time()
                 self.t_send_msg_can = time.time()
 
-                ang_dir = node_decision_maker.msg_steering
-                msg_can_id = 0x82
-                param = [ang_dir, msg_can_id]
-                node_decision_maker.pubOrinToInfra(param)
+                ndm.can_id = 0x82
+                ndm.can_params = [ndm.msg_steering, ndm.can_id]
+                ndm.pubOrinToInfra()
                 
                 can_msg = list()
-                can_msg = node_decision_maker.getCANMessage()
-                #print("CAN MSG: {}".format(can_msg))
+                can_msg = ndm.msg_bridge
                 
                 if(len(can_msg) and hex(int(can_msg[0])) == '0x50'):
                     rpm_left = can_msg[3]
@@ -286,25 +283,24 @@ class DecisionMakerFSM:
 
                         rpm_mean = int((rpm_left + rpm_right)/2)
                         #print("RPM MEAN: {}".format(rpm_mean))
-                        print("node_decision_maker.msg_depth: {}".format(node_decision_maker.msg_depth))
-                        erro = (node_decision_maker.msg_depth - self.gap)*100
+                        print("node_decision_maker.msg_depth: {}".format(ndm.msg_depth))
+                        erro = (ndm.msg_depth - self.gap)*100
                         self.ACC_bufferError[0] = self.ACC_bufferError[1]
                         self.ACC_bufferError[1] = erro
                         dErro = (self.ACC_bufferError[1] - self.ACC_bufferError[0])/(self.ACC_bufferTime[1] - self.ACC_bufferTime[0])
                         rpm_acc = int(self.acc.controller(erro, dErro))
-                        self.rpm_can_acc = rpm_mean + rpm_acc
-                        if self.rpm_can_acc > 35:
-                            self.rpm_can_acc = 35
-                        elif self.rpm_can_acc < 25:
-                            self.rpm_can_acc = 25
+                        self.rpm_can = rpm_mean + rpm_acc
+
+                        if self.rpm_can > 35:
+                            self.rpm_can = 35
+                        elif self.rpm_can < 25:
+                            self.rpm_can = 25
                             
-                        msg_can_id = 0x56
-                        param = [1, self.rpm_can_acc, 1, self.rpm_can_acc, msg_can_id]
-                        #print("RPM CAN: {}".format(self.rpm_can_acc))
-                        node_decision_maker.pubOrinToInfra(param)
+                        ndm.can_id = 0x56
+                        ndm.can_params = [1, self.rpm_can, 1, self.rpm_can, ndm.can_id]
+                        ndm.pubOrinToInfra()
 
-
-                        linha_arquivo =[[time.time(), node_decision_maker.msg_depth, erro, dErro, rpm_acc, rpm_mean, self.rpm_can_acc]]
+                        linha_arquivo =[[time.time(), ndm.msg_depth, erro, dErro, rpm_acc, rpm_mean, self.rpm_can]]
                         columns = ['time', 'distance', 'error', 'dError', 'out_acc(rpm)', 'rpm_mean' ,'rpm_can']
                         #print(linha_arquivo)
                         log.save_dataframe_to_csv(linha_arquivo, columns)
@@ -332,15 +328,15 @@ def main():
             print("Exception: KeyboardInterrupt")
 
             rpm = 0
-            msg_can_id = 0x56
-            param = [1, rpm, 1, rpm, msg_can_id]
+            node_decision_maker.can_id = 0x56
+            node_decision_maker.can_params = [1, rpm, 1, rpm, node_decision_maker.can_id ]
             #print("FREIA PID - KeyboardInterrupt")
-            node_decision_maker.pubOrinToInfra(param)
+            node_decision_maker.pubOrinToInfra()
 
             ang_dir = 25
-            msg_can_id = 0x82
-            param = [ang_dir, msg_can_id]
-            node_decision_maker.pubOrinToInfra(param)
+            node_decision_maker.can_id = 0x82
+            node_decision_maker.can_params = [ang_dir, node_decision_maker.can_id]
+            node_decision_maker.pubOrinToInfra()
 
             break
 

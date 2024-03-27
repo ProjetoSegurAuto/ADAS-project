@@ -37,9 +37,10 @@ class NodeLanewarp():
         # inscrição no topico de imagens
         self.sub = rospy.Subscriber('TPC1Camera', Image, self.callback)
 
-        self.pubVehiclePosition = rospy.Publisher('TPC4VehiclePosition', Float64, queue_size=1)
-        self.pubSteering = rospy.Publisher('TPC4Steering', Float64, queue_size=1)
-        self.pubCurveRadius = rospy.Publisher('TPC5CurveRadius', Float64MultiArray, queue_size=1)
+        self.pubVehiclePosition = rospy.Publisher('VehiclePosition', Float64, queue_size=1)
+        self.pubSteering = rospy.Publisher('Steering', Float64, queue_size=1)
+        self.pubCurveRadius = rospy.Publisher('CurveRadius', Float64MultiArray, queue_size=1)
+
         self.pubLKAroi = rospy.Publisher('TPC6LKAroi', Image, queue_size=1)
         self.pubLKAresult = rospy.Publisher('TPC7LKAresult', Image, queue_size=1)
         self.pubLKAnave = rospy.Publisher('TPC8LKAnave', Image, queue_size=1)
@@ -134,7 +135,7 @@ class LaneWarp():
         # (T, thresh) = cv2.threshold(blurred, 123, 255, cv2.THRESH_BINARY_INV) #outdoor
         #(T, thresh) = cv2.threshold(blurred, 102, 255, cv2.THRESH_BINARY_INV) #indoor 12-14hrs
         #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV)   #indoor
-        (T, thresh) = cv2.threshold(blurred, 121, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
+        (T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
         #(T, thresh) = cv2.threshold(blurred, 120, 255, cv2.THRESH_BINARY_INV) #outdoor 12-14hrs
         
 

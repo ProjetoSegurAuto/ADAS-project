@@ -3,7 +3,7 @@ from datetime import datetime
 import errno
 
 today = datetime.today().strftime('%Y-%m-%d')
-FILENAME = '/home/orin2/Desktop/log_acc/log_acc_'+today+'.csv'
+FILENAME = '/home/orin1/Desktop/log_acc/log_acc_'+today+'.csv'
 
 def save_dataframe_to_csv(linha_arquivo, columns, filename=FILENAME):
     try:
