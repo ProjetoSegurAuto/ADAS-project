@@ -7,23 +7,23 @@ import vector_teste as vc
 s = vc.openSocket()
 #print(s)
 tSendMsgCAN = time.time()  
-angDir = 25
+angDir = 1
 rpmCan = 30
 
 while True:
         try: 
                 if 0.05 < time.time() - tSendMsgCAN:
-                        msgCanId = 0x56
-                        param = [1, rpmCan, 1, rpmCan]
-                        #msgCanId = 0x82
-                        #param = [angDir]
+                        # msgCanId = 0x56
+                        # param = [1, rpmCan, 1, rpmCan]
+                        msgCanId = 0x82
+                        param = [angDir]
                         #msgCanId = 0x94
                         #param = [3, 0, 0, 0, angDir, rpmCan, rpmCan]
                         #print(param)
                         vc.sendMsg(s, msgCanId, param)
                         #msgPlatoon, retornoAng, retornoRPM = vc.logCanPlatoon(s)
                         #print(msgPlatoon)
-                        vc.logCAN(s)
+                        vc.logCAN(s) 
 
 
         except KeyboardInterrupt:

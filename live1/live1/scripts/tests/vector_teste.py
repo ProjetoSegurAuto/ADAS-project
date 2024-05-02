@@ -4,7 +4,7 @@ import arithmetic_things_teste as AT
 
 log = {}
 
-def logCAN(s) -> list:
+def logCAN(s):
     msgECU = s.recv(14)
     log = {}
     if msgECU[2] == 0x80:
@@ -64,8 +64,8 @@ def logCAN(s) -> list:
         log['Role'] = msgECU[6]
         log['gap'] = msgECU[7]
         log['Destino'] = msgECU[8]
-        log['Localização'] = msgECU[9]
-        log['Direção'] = msgECU[10]
+        log['Localizacao'] = msgECU[9]
+        log['Direcao'] = msgECU[10]
         log['rpmEsq'] = msgECU[11]
         log['rpmDir'] = msgECU[12]
 
@@ -75,17 +75,17 @@ def logCAN(s) -> list:
         log['Role'] = msgECU[7]
         log['gap'] = msgECU[8]
         log['Destino'] = msgECU[9]
-        log['Localização'] = msgECU[10]
-        log['Direção'] = msgECU[11]
+        log['Localizacao'] = msgECU[10]
+        log['Direcao'] = msgECU[11]
         log['rpmEsq'] = msgECU[12]
         log['rpmDir'] = msgECU[13]
 
-    elif ((msgECU[3] << 8) + msgECU[2]) == 0x701:
-        log['ECU'] = 'Radar'
-        log['msgCanId'] = (msgECU[3] << 8) +  msgECU[2]
-        log['radarClusterId'] = msgECU[6]
-        log['radarDistLong'] = ((((msgECU[7] << 8) + msgECU[8]) >> 3)*0.2) - 500
-        log['radarDistLat'] = ((((msgECU[8] & 0x03) << 8) + msgECU[9])*0.2) - 102.3
+    # elif ((int(msgECU[3]) << 8) + int(msgECU[2])) == 0x701:
+    #     log['ECU'] = 'Radar'
+    #     log['msgCanId'] = (msgECU[3] << 8) +  msgECU[2]
+    #     log['radarClusterId'] = msgECU[6]
+    #     log['radarDistLong'] = ((((msgECU[7] << 8) + msgECU[8]) >> 3)*0.2) - 500
+    #     log['radarDistLat'] = ((((msgECU[8] & 0x03) << 8) + msgECU[9])*0.2) - 102.3
 
     elif msgECU[2] == 0x98:
         log['ECU'] = 'Comunicacao - Platoon Action'
@@ -198,20 +198,20 @@ def sendMsg(s, msgCANId, value):
             mesg[13] = value[4]      #
             mesg[14] = value[5]      #Kd
 
-        #---------------------ECU COMUNICAÇÃO--------------------------------
+        #---------------------ECU COMUNICACAO--------------------------------
         elif msgCANId == 0x94:       #Mensagem enviada para GROJOBA
             mesg[0]  = 1             #CAN1
             mesg[8]  = value[0]      #ID do carro
             mesg[9]  = value[1]      #GAP
             mesg[10] = value[2]      #Destino
-            mesg[11] = value[3]      #Localização
-            mesg[12] = value[4]      #Direção
+            mesg[11] = value[3]      #LocalizaCAO
+            mesg[12] = value[4]      #DIRECAO
             mesg[13] = value[5]      #RpmEsq
             mesg[14] = value[6]      #RpmDir
 
         elif msgCANId == 0x97:
             mesg[0]  = 1
-            mesg[12] = value[0]      #Direção
+            mesg[12] = value[0]      #DireCAO
             mesg[13] = value[1]      #RpmEsq
             mesg[14] = value[2]      #RpmDir
 
@@ -274,8 +274,8 @@ def logCanPlatoon(s):
         log['Role'] = msgECU[7]
         log['gap'] = msgECU[8]
         log['Destino'] = msgECU[9]
-        log['Localização'] = msgECU[10]
-        log['Direção'] = msgECU[11]
+        log['Localizacao'] = msgECU[10]
+        log['DIRECAO'] = msgECU[11]
         log['rpmEsq'] = msgECU[12]
         log['rpmDir'] = msgECU[13]
 

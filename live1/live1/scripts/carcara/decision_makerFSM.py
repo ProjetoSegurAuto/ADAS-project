@@ -18,7 +18,7 @@ import log
 '''
 Definição das constantes
 '''
-RPM_INIT = 60
+RPM_INIT = 20
 ANGLE_INIT = 25
 STATE_INIT = 0
 RPM_ACC_INIT = 0
