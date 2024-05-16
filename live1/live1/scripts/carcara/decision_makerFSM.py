@@ -18,7 +18,7 @@ import log
 '''
 Definição das constantes
 '''
-RPM_INIT = 60
+RPM_INIT = 50
 ANGLE_INIT = 25
 STATE_INIT = 0
 RPM_ACC_INIT = 0
@@ -96,11 +96,12 @@ class NodeDecisionMaker:
         self.flag_depth_received = True
         self.msg_depth = msg_depth.data
 
-        if(self.msg_depth > 1.0 ): #CNN
-            self.distance_buffer.append(self.msg_depth)
+        self.distance_buffer.append(self.msg_depth)
 
-            if(len(self.distance_buffer) > DISTANCE_BUFFER_LEN):
-                self.distance_buffer.pop(0)
+        if(len(self.distance_buffer) > DISTANCE_BUFFER_LEN):
+            self.distance_buffer.pop(0)
+
+        if(self.msg_depth > DISTANCE_STOP ): #CNN
 
             distance_valid = [i for i in self.distance_buffer if i < 99 ] 
             
@@ -109,9 +110,10 @@ class NodeDecisionMaker:
 
                 if( distance_valid_mean > 0):
                     self.msg_depth = distance_valid_mean
-                    self.distance_decision()
-        else: #ZED
-            self.distance_decision()
+            else:
+                self.msg_depth = DISTANCE_ACC + 1  
+            
+        self.distance_decision()
 
     def callback_vehicle_position(self, msg_vehicle_position):
         self.flag_vehicle_position_received = True
@@ -256,8 +258,14 @@ class DecisionMakerFSM:
             print("Estado: {}. Emergência!".format(self.dic_states[self.state]))
             if self.time_min < time.time() - self.t_send_msg_can:
                 self.t_send_msg_can = time.time()
+                self.rpm_can  = 0
+
+                ndm.can_id = 0x56
+                ndm.can_params = [1, self.rpm_can , 1, self.rpm_can , ndm.can_id]
+                ndm.pubOrinToInfra()
+                time.sleep(0.2)
                 ndm.can_id = 0x5C
-                ndm.can_params = [1, 0, 1, 0, ndm.can_id]
+                ndm.can_params = [1, self.rpm_can , 1, self.rpm_can , ndm.can_id]
                 ndm.pubOrinToInfra()
         
         elif self.state == 3:  
@@ -291,8 +299,8 @@ class DecisionMakerFSM:
                         rpm_acc = int(self.acc.controller(erro, dErro))
                         self.rpm_can = rpm_mean + rpm_acc
 
-                        if self.rpm_can > 35:
-                            self.rpm_can = 35
+                        if self.rpm_can > (RPM_INIT + 5):
+                            self.rpm_can = (RPM_INIT + 5)
                         elif self.rpm_can < 25:
                             self.rpm_can = 25
                             
@@ -307,6 +315,8 @@ class DecisionMakerFSM:
                     
                 else:
                     del can_msg[:]
+        
+        print("Velocidade {} RPM".format(self.rpm_can))
                 
         
 def main():

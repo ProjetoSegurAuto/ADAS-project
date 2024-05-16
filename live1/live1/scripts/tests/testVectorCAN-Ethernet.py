@@ -15,8 +15,9 @@ while True:
                 if 0.05 < time.time() - tSendMsgCAN:
                         # msgCanId = 0x56
                         # param = [1, rpmCan, 1, rpmCan]
-                        #msgCanId = 0x82
-                        #param = [angDir]
+
+                        msgCanId = 0x82
+                        param = [angDir]
                         #msgCanId = 0x94
                         #param = [3, 0, 0, 0, angDir, rpmCan, rpmCan]
                         msgCanId = 0x97
@@ -26,7 +27,9 @@ while True:
                         time.sleep(1)
                         #msgPlatoon, retornoAng, retornoRPM = vc.logCanPlatoon(s)
                         #print(msgPlatoon)
-                        #vc.logCAN(s)
+
+                        vc.logCAN(s) 
+
 
 
         except KeyboardInterrupt:
