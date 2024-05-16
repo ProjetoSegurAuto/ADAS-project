@@ -211,9 +211,14 @@ def sendMsg(s, msgCANId, value):
 
         elif msgCANId == 0x97:
             mesg[0]  = 1
-            mesg[12] = value[0]      #Direção
-            mesg[13] = value[1]      #RpmEsq
-            mesg[14] = value[2]      #RpmDir
+            mesg[7] = value[0]
+            mesg[8] = value[1]      #Direçã
+            mesg[9] = value[2]      #Direção
+            mesg[10] = value[3]      #RpmEsq
+            mesg[11] = value[4]      #RpmDir
+            mesg[12] = value[5]      #Direção
+            mesg[13] = value[6]      #RpmEsq
+            mesg[14] = value[7]      #RpmDir
 
 
         msg = bytearray(mesg)
