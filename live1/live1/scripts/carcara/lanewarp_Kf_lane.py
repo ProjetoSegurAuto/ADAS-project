@@ -104,10 +104,10 @@ class LaneWarp():
         width = imagem.shape[1]
         img_size = (width, height)
 
-        #src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
+        src = np.float32([[0, height], [width, height], [200, 530], [(width-200), 530]])
                 
         #gsv
-        src = np.float32([[0, height], [width, height], [500, 415], [(width-450), 415]])
+        #src = np.float32([[0, height], [width, height], [500, 415], [(width-450), 415]])
         dst = np.float32([[0, height], [width, height], [0, 0], [width, 0]])
 
         img = imagem
@@ -116,8 +116,8 @@ class LaneWarp():
         cv2.circle(img, (235, 530), 10, (0, 0, 255), 5)
         cv2.circle(img, ((width-210), 530), 10, (0, 0, 255), 5)
 
-        cv2.circle(img, (415, 415), 10, (255, 0, 0), 5) #500
-        cv2.circle(img, (width-450, 415), 10, (255, 0, 0), 5)
+        #cv2.circle(img, (415, 415), 10, (255, 0, 0), 5) #500
+        #cv2.circle(img, (width-450, 415), 10, (255, 0, 0), 5)
 
         M = cv2.getPerspectiveTransform(src, dst)        # [estudar]
         M_inv = cv2.getPerspectiveTransform(dst, src)    # [estudar]

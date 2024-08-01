@@ -18,7 +18,7 @@ class DetectNetNode:
         rospy.loginfo('O node Detecnet foi iniciado!')
 
         #https://github.com/dusty-nv/jetson-inference/blob/master/docs/detectnet-console-2.md
-        self.net = jetson.inference.detectNet("trafficcamnet", threshold=0.3)#trafficcamnet #ssd-mobilenet-v2
+        self.net = jetson.inference.detectNet("ssd-mobilenet-v2", threshold=0.3)#trafficcamnet #ssd-mobilenet-v2 dashcamnet
 
         ##Recebe uma imagem
         self.image = Image()      
@@ -59,18 +59,20 @@ class DetectNetNode:
         detections = self.net.Detect(cuda_image, overlay="none")
         objectDetectnetID = 0
         for detection in detections:
-            objectDetectnet["trackID"] = detection.TrackID
-            objectDetectnet["classId"] = detection.ClassID
-            objectDetectnet["class"]   = (self.net.GetClassLabel(detection.ClassID))
-            objectDetectnet["coords"]  = [int(i) for i in detection.ROI] 
-            objectDetectnet["center"]  = [int(i) for i in detection.Center]
-            objectDetectnet["conf"]    = detection.Confidence
-            #objectDetectnet["distance"] = round(self.getDistance(objectDetectnet["coords"]), 2)
-            
-            objectDetectnetID = objectDetectnetID + 1
-            objectsDetectnet[str(objectDetectnetID)] = str(objectDetectnet)
 
-            self.getImageDetectnet(objectDetectnet)
+            if((self.net.GetClassLabel(detection.ClassID)) in ["person", "stop sign"]):
+                objectDetectnet["trackID"] = detection.TrackID
+                objectDetectnet["classId"] = detection.ClassID
+                objectDetectnet["class"]   = (self.net.GetClassLabel(detection.ClassID))
+                objectDetectnet["coords"]  = [int(i) for i in detection.ROI] 
+                objectDetectnet["center"]  = [int(i) for i in detection.Center]
+                objectDetectnet["conf"]    = detection.Confidence
+                #objectDetectnet["distance"] = round(self.getDistance(objectDetectnet["coords"]), 2)
+                
+                objectDetectnetID = objectDetectnetID + 1
+                objectsDetectnet[str(objectDetectnetID)] = str(objectDetectnet)
+
+                self.getImageDetectnet(objectDetectnet)
 
         objectsDetectnetSend = {}
         for index, obj in enumerate(objectsDetectnet):

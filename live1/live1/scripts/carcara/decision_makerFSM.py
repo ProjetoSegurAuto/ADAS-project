@@ -18,14 +18,14 @@ import log
 '''
 Definição das constantes
 '''
-RPM_INIT = 50
+RPM_INIT = 30
 ANGLE_INIT = 25
 STATE_INIT = 0
 RPM_ACC_INIT = 0
 
-PLATOON_GAP_INIT = 2
+PLATOON_GAP_INIT = 1.5#2
 
-DISTANCE_ACC = 3.0 
+DISTANCE_ACC = 1.7#3.0 
 DISTANCE_STOP = 1.1 
 DISTANCE_BUFFER_LEN = 20
 TIME_CAN = 0.01 #0.001 Intervalo de tempo para envio de msg na CAN
